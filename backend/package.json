@@ -1,0 +1,22 @@
+{
+  "name": "app_api",
+  "author": "Ainur",
+  "version": "0.0.1",
+  "type": "module",
+  "main": "app.js",
+  "scripts": {
+    "start": "node app.js",
+    "dev": "nodemon app.js"
+  },
+  "devDependencies": {
+    "fastify": "^5.3.1"
+  },
+  "dependencies": {
+    "bcrypt": "^5.1.1",
+    "dotenv": "^16.5.0",
+    "jsonwebtoken": "^9.0.2",
+    "nodemon": "^3.1.9",
+    "pg": "^8.14.1",
+    "pino-pretty": "^13.0.0"
+  }
+}
