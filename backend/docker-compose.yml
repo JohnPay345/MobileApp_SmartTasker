@@ -1,0 +1,29 @@
+version: "3.9"
+services:
+  web-api:
+    build:
+      context: .  # Директория, содержащая Dockerfile
+      dockerfile: Dockerfile-Node
+    ports:
+      - '8080:8080'
+    depends_on:
+      - postgres-db
+    volumes:
+      - app_data:/web-api
+    
+  postgres-db:
+    build:
+      context: .  # Директория, содержащая Dockerfile
+      dockerfile: Dockerfile-PG
+    ports:
+      - '5432:5432'
+    environment:
+      POSTGRES_USER: ST_c&Rsov@aya789
+      POSTGRES_PASSWORD: A@RlZlMr*tNtgvrmri
+      POSTGRES_DB: postgres
+    volumes:
+      - db_data:/var/lib/postgresql/data
+
+volumes:
+  db_data:
+  app_data:
