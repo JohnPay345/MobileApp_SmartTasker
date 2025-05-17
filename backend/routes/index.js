@@ -1,7 +1,11 @@
-import {UserRoutes} from "./user.routes.js";
 import qs from "querystring";
+import { __dirname } from "../utils/dirname.js";
+import { TasksRoutes } from "./tasks.routes.js";
+import { UserRoutes } from "./user.routes.js";
+import { NotificationsRoutes } from "./notifications.routes.js";
 
 export const routes = (fastify, options, done) => {
+  // Нужен для парсинга body из запроса
   fastify.addContentTypeParser(
     "application/x-www-form-urlencoded",
     function (request, payload, done) {
@@ -16,6 +20,8 @@ export const routes = (fastify, options, done) => {
     }
   );
 
-  fastify.register(UserRoutes, {prefix: '/api'});
+  fastify.register(UserRoutes, { prefix: '/api' });
+  fastify.register(TasksRoutes, { prefix: '/api' });
+  fastify.register(NotificationsRoutes, { prefix: '/api' });
   done();
 }

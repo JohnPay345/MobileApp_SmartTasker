@@ -8,6 +8,7 @@ services:
       - '8080:8080'
     depends_on:
       - postgres-db
+      - rabbitmq
     volumes:
       - app_data:/web-api
     
@@ -20,10 +21,24 @@ services:
     environment:
       POSTGRES_USER: ST_c&Rsov@aya789
       POSTGRES_PASSWORD: A@RlZlMr*tNtgvrmri
-      POSTGRES_DB: postgres
+      POSTGRES_DB: root_db
     volumes:
       - db_data:/var/lib/postgresql/data
+  
+  rabbitmq:
+    image: rabbitmq:4.1.0-management
+    hostname: rabbitmq
+    restart: always
+    ports:
+      - '15672:15672'
+      - '5672:5672'
+    environment:
+      RABBITMQ_DEFAULT_USER: rmuser
+      RABBITMQ_DEFAULT_PASS: rmpassword
+    volumes:
+      - rm_data:/var/lib/rabbitmq
 
 volumes:
   db_data:
   app_data:
+  rm_data:
