@@ -60,22 +60,165 @@ export const errorReplyCodes = {
   },
 }
 
-export const updateDataInTable = (tableName, data, whereClause, returningColumns) => {
+export const selectDataInTable = async (options) => {
   try {
-    let setClauses = [];
-    let values = [];
-    let paramIndex = 1;
+    if (!options || !options.table) {
+      return { type: "Error", message: "Table name is required" };
+    }
+    const {
+      table,
+      columns = ['*'],
+      where,
+      orderBy,
+      orderDirection = 'ASC',
+      limit,
+      offset,
+      join,
+    } = options;
+    let sql = 'SELECT ';
+    sql += Array.isArray(columns) ? columns.join(', ') : columns;
+    sql += ' FROM ';
+    sql += Array.isArray(table) ? table.join(', ') : table;
+    if (join && Array.isArray(join) && join.length > 0) {
+      join.forEach((joinItem) => {
+        if (!joinItem.table || !joinItem.type || !joinItem.on) {
+          return { type: "Error", message: "Join parameters (table, type, on) are required for each join" };
+        }
+        sql += ` ${joinItem.type} JOIN ${joinItem.table} ON ${joinItem.on}`;
+      });
+    }
+    const values = [];
+    let valueIndex = 1;
+    let whereClause = '';
+    if (where) {
+      const whereClauses = [];
+      for (const column in where) {
+        if (where.hasOwnProperty(column)) {
+          const value = where[column];
+          whereClauses.push(`${column} = $${valueIndex}`);
+          values.push(value);
+          valueIndex++;
+        }
+      }
+      if (whereClauses.length > 0) {
+        whereClause = ' WHERE ' + whereClauses.join(' AND ');
+        sql += whereClause;
+      }
+    }
+    if (orderBy) {
+      sql += ` ORDER BY ${orderBy} ${orderDirection.toUpperCase()}`;
+    }
+    if (limit && !(typeof limit !== 'number' || limit <= 0)) {
+      sql += ` LIMIT ${limit}`;
+    }
+    if (offset && !(typeof offset !== 'number' || offset < 0)) {
+      sql += ` OFFSET ${offset}`;
+    }
+    return {
+      type: "Success",
+      message: sql,
+      values: values,
+    };
+  } catch (error) {
+    console.error('Error at created sql request:', error);
+    return { type: "Error", message: "An unpredictable error" };
+  }
+}
 
-    // Формирование SET-части запроса (для обновления)
+export const insertDataInTable = async (options) => {
+  try {
+    const { tableName, data, requiredFields = [], returningColumns = [] } = options;
+    if (!tableName || typeof tableName !== 'string' || tableName.trim() === '') {
+      return { type: "Error", message: "You need to specify the name of the table" };
+    }
+    if (!data || Object.keys(data).length === 0) {
+      return { type: "Error", message: "You need to specify the table data" };
+    }
+    if (!requiredFields || requiredFields.length === 0) {
+      console.warn("No required fields specified. Skipping validation");
+    } else {
+      const missingFields = requiredFields.filter(field => !data.hasOwnProperty(field) || data[field] === null || data[field] === undefined);
+      if (missingFields.length > 0) {
+        return { type: "Error", message: `Missing required fields for INSERT: ${missingFields.join(', ')}` };
+      }
+    }
+    const columns = Object.keys(data);
+    let values = [];
+    let setClauses = [];
+    let paramIndex = 1;
     for (const key in data) {
       if (data.hasOwnProperty(key)) {
         const value = data[key];
-
         if (value === undefined || value === null || (typeof value === 'string' && value === '')) {
-          continue;
+          setClauses.push(`"${key}" = NULL`);
+        } else if (Array.isArray(value)) {
+          setClauses.push(`UNNEST($${paramIndex})`);
+          values.push(value);
+          paramIndex++;
+        } else if (typeof value === 'object' && value !== null) {
+          setClauses.push(`$${paramIndex}`);
+          values.push(JSON.stringify(value));
+          paramIndex++;
+        } else if (value === 'DEFAULT') {
+          setClauses.push(`DEFAULT`);
+        } else {
+          setClauses.push(`"$${paramIndex}`);
+          values.push(value);
+          paramIndex++;
         }
+      }
+    }
+    const columnList = columns.join(', ');
+    const valueList = setClauses.join(', ');
+    let sql = `INSERT INTO ${tableName} (${columnList}) VALUES (${valueList});`;
+    if (returningColumns && returningColumns.length > 0) {
+      const returningString = returningColumns.map(col => `"${col}"`).join(', ');
+      sql += ` RETURNING ${returningString}`;
+    }
+    return { type: "Success", message: sql, values: values };
+  } catch (error) {
+    console.error('Error at created sql request:', error);
+    return { type: "Error", message: "An unpredictable error" };
+  }
+}
 
-        if (typeof value === 'object' && value !== null) {
+export const updateDataInTable = async (options) => {
+  try {
+    const { tableName, data, whereClause = {}, requiredFields = [], returningColumns = [] } = options;
+    if (!tableName || typeof tableName !== 'string' || tableName.trim() === '') {
+      return { type: "Error", message: "You need to specify the name of the table" };
+    }
+    if (!data || Object.keys(data).length === 0) {
+      return { type: "Error", message: "You need to specify the table data" };
+    }
+    if (!whereClause || typeof whereClause !== 'object' || Object.keys(whereClause).length === 0) {
+      return { type: "Error", message: "You need to specify the conditions (WHERE)" };
+    }
+    if (!requiredFields || requiredFields.length === 0) {
+      console.warn("No required fields specified. Skipping validation");
+    } else {
+      const missingFields = requiredFields.filter(field => data.hasOwnProperty(field) && (data[field] === null || data[field] === undefined));
+      if (missingFields.length > 0) {
+        return { type: "Error", message: `Missing required fields for INSERT: ${missingFields.join(', ')}` };
+      }
+    }
+    let setClauses = [];
+    let values = [];
+    let paramIndex = 1;
+    for (const key in data) {
+      if (data.hasOwnProperty(key)) {
+        const value = data[key];
+        if (value === undefined || value === null || (typeof value === 'string' && value === '')) {
+          setClauses.push(`"${key}" = NULL`);
+        } else if (typeof value === 'object' && value !== null) {
+          setClauses.push(`"${key}" = $${paramIndex}`);
+          values.push(JSON.stringify(value));
+          paramIndex++;
+        } else if (Array.isArray(value)) {
+          setClauses.push(`"${key}" = UNNEST($${paramIndex})`);
+          values.push(value);
+          paramIndex++;
+        } else if (typeof value === 'object' && value !== null) {
           setClauses.push(`"${key}" = $${paramIndex}`);
           values.push(JSON.stringify(value));
           paramIndex++;
@@ -88,8 +231,6 @@ export const updateDataInTable = (tableName, data, whereClause, returningColumns
         }
       }
     }
-
-    // Формирование WHERE-части запроса (для фильтрации)
     let whereClauses = [];
     for (const key in whereClause) {
       if (whereClause.hasOwnProperty(key)) {
@@ -98,14 +239,12 @@ export const updateDataInTable = (tableName, data, whereClause, returningColumns
         paramIndex++;
       }
     }
-
     if (setClauses.length === 0) {
       return { type: "Error", message: 'There is not data to update' };
     }
     if (whereClauses.length === 0) {
       return { type: "Error", message: 'The conditions for updating are not specified' };
     }
-
     const setString = setClauses.join(', ');
     const whereString = whereClauses.join(' AND ');
     const sql = `
@@ -113,7 +252,6 @@ export const updateDataInTable = (tableName, data, whereClause, returningColumns
       SET ${setString}
       WHERE ${whereString}
     `;
-
     if (returningColumns && returningColumns.length > 0) {
       const returningString = returningColumns.map(col => `"${col}"`).join(', ');
       sql += ` RETURNING ${returningString}`;
