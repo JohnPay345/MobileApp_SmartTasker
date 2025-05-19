@@ -10,6 +10,19 @@ CREATE USER "worker1" WITH PASSWORD 's@ic5lyIK$tM';
 CREATE EXTENSION pgcrypto;
 CREATE EXTENSION "uuid-ossp";
 
+-- Создание функции для получение uuid администратора
+CREATE OR REPLACE FUNCTION get_admin_user_id()
+RETURNS STRING AS $$
+BEGIN
+    RETURN '8f6a962b4e77f49c08d1d60ad7efbd0fd77a5fbd070d5ac1f95bf92a0618f0fc';
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
+
+-- Запрет всем на выполение функции, и выдача прав на выполнение от "worker1"
+REVOKE ALL ON FUNCTION get_admin_user_id() FROM PUBLIC;
+GRANT EXECUTE ON FUNCTION get_admin_user_id() TO "worker1"; -- Разрешить выполнение конкретному пользователю, который будет делать запросы
+
+
 -- Выдаём права на все таблицы в схеме public на пользователя worker1
 GRANT SELECT, INSERT, UPDATE, DELETE ON ALL TABLES IN SCHEMA public TO "worker1";
 GRANT CREATE ON SCHEMA public TO "worker1";
@@ -140,15 +153,15 @@ CREATE TABLE IF NOT EXISTS tasks (
   task_id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
   task_name VARCHAR(255) NOT NULL, -- Название задачи
   description TEXT, -- Описание задачи
-  user_id UUID REFERENCES users (user_id) ON DELETE CASCADE NOT NULL, -- UUID в ссылке на users
+  author_id UUID REFERENCES users (user_id) ON DELETE CASCADE NOT NULL, -- UUID в ссылке на users
   project_id UUID REFERENCES projects (project_id) DEFAULT NULL, -- UUID в ссылке на projects
   start_date DATE DEFAULT NOW() NOT NULL, -- Дата начала задачи
   end_date DATE, -- Крайний срок задачи
   status task_status_type NOT NULL, -- Используем ENUM для статуса задачи
   is_urgent BOOLEAN DEFAULT FALSE, -- Boolean срочно/не срочно
-  priority priority_type NOT NULL, -- Используем ENUM для приоритета (или INT)
-  value value_type NOT NULL, -- Используем ENUM для ценностей (или INT)
-  effort effort_type NOT NULL, -- Используем ENUM для усилий (или INT)
+  priority priority_type NOT NULL, -- Используем ENUM для приоритета
+  value value_type NOT NULL, -- Используем ENUM для ценностей
+  effort effort_type NOT NULL, -- Используем ENUM для усилий
   estimated_duration INT NOT NULL, -- Оценка срока
   priority_assessment INT NOT NULL, -- Оценка приориета
   qualification_assessment INT NOT NULL, -- Оценка квалификации
@@ -159,7 +172,7 @@ CREATE TABLE IF NOT EXISTS tasks (
 -- Создание таблицы task_assignments (Назначения задач пользователям)
 CREATE TABLE IF NOT EXISTS task_assignments (
   task_assignment_id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-  task_id UUID REFERENCES tasks (task_id) NOT NULL, -- UUID в ссылке на tasks
+  task_id UUID REFERENCES tasks (task_id) ON DELETE CASCADE NOT NULL, -- UUID в ссылке на tasks
   user_id UUID REFERENCES users (user_id) ON DELETE CASCADE NOT NULL, -- UUID в ссылке на users
   assigned_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(), -- Время назначения
   is_completed BOOLEAN DEFAULT FALSE, -- Выполнена задача или нет
@@ -170,7 +183,7 @@ CREATE TABLE IF NOT EXISTS task_assignments (
 CREATE TABLE IF NOT EXISTS task_comments (
   comment_id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
   task_id UUID REFERENCES tasks (task_id) ON DELETE CASCADE NOT NULL, -- Ссылка на задачу
-  user_id UUID REFERENCES users (user_id) NOT NULL, -- Автор комментария
+  user_id UUID REFERENCES users (user_id) ON DELETE SET DEFAULT DEFAULT get_admin_user_id() NOT NULL, -- Автор комментария
   comment_text TEXT NOT NULL, -- Текст комментария
   created_at TIMESTAMP WITH TIME ZONE, -- Дата создания комментария
   updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(), -- Дата редактирования сообщения
