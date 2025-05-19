@@ -1,63 +1,86 @@
 import { TasksModel } from "../models/tasks.model.js";
-import { replyResult } from "../service/duplicatePartsCode.js";
+import { errorReplyCodes, replyResult } from "../service/duplicatePartsCode.js";
 
 export const TasksController = {
   GetTasksByUserId: async (req, rep) => {
     const { userId } = req.params;
-    if (!req.user.userId) {
-      return rep.code(400).send({ code: 400, url: req.url, message: "User id is not found" })
+    const reqUserId = req.user.userId;
+    if (reqUserId !== userId) {
+      return errorReplyCodes.reply403("DEFAULT", `There no access for user ${userId}`);
     }
     try {
-      const result = await TasksModel.GetTasks(req.user.userId);
+      const result = await TasksModel.getTasksByUserId(userId);
       return replyResult(result);
     } catch (error) {
       console.error("Error at get tasks", error);
-      return rep.code(500).send({ code: 500, url: req.url, message: "Internal Server Error" });
+      return errorReplyCodes.reply500("DEFAULT");
     }
   },
   GetTaskById: async (req, rep) => {
+    const { userId, taskId } = req.params;
+    const reqUserId = req.user.userId;
+    if (reqUserId !== userId) {
+      return errorReplyCodes.reply403("DEFAULT", `There no access for user ${userId}`);
+    }
     try {
-      const { id } = req.params;
-      if (!id) {
-        return rep.code(400).send({ code: 400, url: req.url, message: "Id isn't found" })
-      }
-      const result = await TasksModel.GetTaskById(id);
+      const result = await TasksModel.getTaskById(taskId);
       return replyResult(result);
     } catch (error) {
       console.error("Error at get task by id", error);
-      return rep.code(500).send({ code: 500, url: req.url, message: "Internal Server Error" });
+      return errorReplyCodes.reply500("DEFAULT");
     }
   },
   CreateTask: async (req, rep) => {
-    const { id } = req.params;
+    const { userId } = req.params;
+    const reqUserId = req.user.userId;
     if (!req.body) {
-      return rep.code(400).send({ code: 400, url: req.url, message: "To update, you need to change something" });
+      return errorReplyCodes.reply400("MISSING_REQUIRED_FIELD");
     }
-    const { name, email, password, bio } = req.body;
-    if (id !== req.user.userId) {
-      return rep.code(400).send({ code: 400, url: req.url, message: "There is no access" });
+    const { data } = req.body;
+    if (!data || typeof data !== 'object') {
+      return errorReplyCodes.reply400("MISSING_REQUIRED_FIELD");
+    }
+    if (userId !== reqUserId) {
+      return errorReplyCodes.reply403("DEFAULT", `There no access for user ${userId}`);
     }
     try {
-      return rep.code(200).send({ code: 200, url: req.url, result: "Success create new task" });
+      const result = await TasksModel.createTask(data);
+      return replyResult(result);
     } catch (error) {
       console.error("Error at create new task", error);
-      return rep.code(500).send({ code: 500, url: req.url, message: "Internal Server Error" });
+      return errorReplyCodes.reply500("DEFAULT");
     }
   },
   UpdateTaskById: async (req, rep) => {
+    const { userId, taskId } = req.params;
+    const reqUserId = req.user.userId;
+    if (!req.body) {
+      return errorReplyCodes.reply400("MISSING_REQUIRED_FIELD");
+    }
+    const { data } = req.body;
+    if (userId !== reqUserId) {
+      return errorReplyCodes.reply403("DEFAULT", `There no access for user ${userId}`);
+    }
     try {
-      return rep.code(200).send({ code: 200, url: req.url, result: "Success update task" });
+      const result = await TasksModel.updateTaskById(taskId, data);
+      return replyResult(result);
     } catch (error) {
       console.error("Error at update task", error);
-      return rep.code(500).send({ code: 500, url: req.url, message: "Internal Server Error" });
+      return errorReplyCodes.reply500("DEFAULT");
     }
   },
   DeleteTaskById: async (req, rep) => {
+    const { userId, taskId } = req.params;
+    const reqUserId = req.user.userId;
+    if (userId !== reqUserId) {
+      return errorReplyCodes.reply403("DEFAULT", `There no access for user ${userId}`);
+    }
     try {
-      return rep.code(200).send({ code: 200, url: req.url, result: "Success delete task" });
+      const result = await TasksModel.deleteTaskById(taskId, userId);
+      return replyResult(result);
     } catch (error) {
       console.error("Error at delete task", error);
-      return rep.code(500).send({ code: 500, url: req.url, message: "Internal Server Error" });
+      return errorReplyCodes.reply500("DEFAULT");
     }
   },
 }
