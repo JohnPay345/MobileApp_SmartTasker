@@ -12,9 +12,9 @@ CREATE EXTENSION "uuid-ossp";
 
 -- Создание функции для получение uuid администратора
 CREATE OR REPLACE FUNCTION get_admin_user_id()
-RETURNS STRING AS $$
+RETURNS UUID AS $$
 BEGIN
-    RETURN '8f6a962b4e77f49c08d1d60ad7efbd0fd77a5fbd070d5ac1f95bf92a0618f0fc';
+    RETURN '59e3a168-0a05-4cfa-a03d-f4aa328fd976';
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
 
@@ -42,6 +42,9 @@ CREATE TYPE task_status_type AS ENUM ('Черновик', 'В работе', 'В
 
 -- Enum для статуса проекта
 CREATE TYPE project_status_type AS ENUM ('Черновик', 'В работе', 'Выполнена', 'Неактуальна', 'Провален', 'Приостановлен');
+
+-- Enum для статуса цели
+CREATE TYPE goal_status_type AS ENUM ('В работе', 'Достигнута', 'Провалена', 'Неактуальна');
 
 -- Enum для приоритета
 CREATE TYPE priority_type AS ENUM ('1', '2', '3', '4', '5');
@@ -140,12 +143,30 @@ CREATE TABLE IF NOT EXISTS projects (
   project_id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
   project_name VARCHAR(255) NOT NULL, -- Название проекта
   description TEXT, -- Описание проекта
-  start_date DATE DEFAULT NOW() NOT NULL, -- Дата начала проекта
-  end_date DATE NOT NULL, -- Дата конца проекта (дедлайн)
+  start_date DATE DEFAULT NOW(), -- Дата начала проекта
+  end_date DATE, -- Дата конца проекта (дедлайн)
   status project_status_type NOT NULL, -- Используем ENUM для статуса проекта
-  created_by_user_id UUID REFERENCES users (user_id) NOT NULL, -- UUID в ссылке на users
+  author_id UUID REFERENCES users (user_id) NOT NULL, -- UUID в ссылке на users
+  tags TEXT[],
   created_at TIMESTAMP WITH TIME ZONE,
   updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+
+-- Создание таблицы project_goals (Цели проекта)
+CREATE TABLE IF NOT EXISTS project_goals (
+  project_goal_id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  project_id UUID REFERENCES projects (project_id) ON DELETE CASCADE NOT NULL, -- UUID в ссылке на projects
+  goal_name VARCHAR(150) DEFAULT 'Без цели' NOT NULL, -- Название цели
+  goal_description TEXT, -- Описание цели
+  target_date DATE DEFAULT CURRENT_DATE NOT NULL, -- Крайний срок цели (будем преобразовывать формат dd.mm.YYYY в YYYY-mm-dd)
+  goal_status goal_status_type DEFAULT 'В работе' NOT NULL -- Статус цели
+);
+
+-- Создание таблицы project_assignments (Команда проекта)
+CREATE TABLE IF NOT EXISTS project_assignments (
+  project_assignment_id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  project_id UUID REFERENCES projects (project_id) ON DELETE CASCADE NOT NULL, -- UUID в ссылке на projects
+  user_id UUID REFERENCES users (user_id) ON DELETE SET DEFAULT DEFAULT get_admin_user_id() NOT NULL -- UUID в ссылке на users
 );
 
 -- Создание таблицы tasks (Задачи)
@@ -155,6 +176,7 @@ CREATE TABLE IF NOT EXISTS tasks (
   description TEXT, -- Описание задачи
   author_id UUID REFERENCES users (user_id) ON DELETE CASCADE NOT NULL, -- UUID в ссылке на users
   project_id UUID REFERENCES projects (project_id) DEFAULT NULL, -- UUID в ссылке на projects
+  goal_id UUID REFERENCES project_goals (project_goal_id) DEFAULT NULL, -- UUID в ссылке на project_goals
   start_date DATE DEFAULT NOW() NOT NULL, -- Дата начала задачи
   end_date DATE, -- Крайний срок задачи
   status task_status_type NOT NULL, -- Используем ENUM для статуса задачи
@@ -173,7 +195,7 @@ CREATE TABLE IF NOT EXISTS tasks (
 CREATE TABLE IF NOT EXISTS task_assignments (
   task_assignment_id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
   task_id UUID REFERENCES tasks (task_id) ON DELETE CASCADE NOT NULL, -- UUID в ссылке на tasks
-  user_id UUID REFERENCES users (user_id) ON DELETE CASCADE NOT NULL, -- UUID в ссылке на users
+  user_id UUID REFERENCES users (user_id) ON DELETE SET DEFAULT DEFAULT get_admin_user_id() NOT NULL, -- UUID в ссылке на users
   assigned_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(), -- Время назначения
   is_completed BOOLEAN DEFAULT FALSE, -- Выполнена задача или нет
   completed_at TIMESTAMP WITH TIME ZONE -- Когда выполнили
@@ -206,7 +228,7 @@ CREATE TABLE IF NOT EXISTS in_app_notifications (
 CREATE INDEX idx_users_email ON users (email); -- Индекс по email в users
 CREATE INDEX idx_tasks_status ON tasks (status); -- Индекс по статусу задачи в tasks
 CREATE INDEX idx_tasks_project_id ON tasks (project_id); -- Индекс по project_id в tasks
-CREATE INDEX idx_tasks_author_user_id ON tasks (user_id); -- Индекс по user_id в tasks
+CREATE INDEX idx_tasks_author_user_id ON tasks (author_id); -- Индекс по user_id в tasks
 CREATE INDEX idx_task_assignments_task_id ON task_assignments (task_id); -- Индекс по task_id в task_assingments
 CREATE INDEX idx_task_assignments_user_id ON task_assignments (user_id); -- Индекс по user_id в task_assingments
 CREATE INDEX idx_task_assignments_is_completed ON task_assignments (is_completed); -- Индекс по is_completed в task_assingments

@@ -78,13 +78,48 @@ export const selectDataInTable = async (options) => {
     let sql = 'SELECT ';
     sql += Array.isArray(columns) ? columns.join(', ') : columns;
     sql += ' FROM ';
-    sql += Array.isArray(table) ? table.join(', ') : table;
+    let tableParts = [];
+    if (Array.isArray(table)) {
+      for (const item of table) {
+        if (typeof item === 'string') {
+          tableParts.push(item);
+        } else if (Array.isArray(item) && item.length === 2) {
+          tableParts.push(`${item[0]} AS ${item[1]}`);
+        } else {
+          return { type: 'Error', message: 'Invalid table format in FROM clause' };
+        }
+      }
+    } else if (typeof table === 'string') {
+      tableParts.push(table);
+    } else {
+      return { type: 'Error', message: 'Invalid table format' };
+    }
+    sql += tableParts.join(', ');
     if (join && Array.isArray(join) && join.length > 0) {
       join.forEach((joinItem) => {
         if (!joinItem.table || !joinItem.type || !joinItem.on) {
           return { type: "Error", message: "Join parameters (table, type, on) are required for each join" };
         }
-        sql += ` ${joinItem.type} JOIN ${joinItem.table} ON ${joinItem.on}`;
+        let joinTableSql = '';
+        if (Array.isArray(joinItem.table)) {
+          const joinTableParts = [];
+          for (const joinItemTable of joinItem.table) {
+            if (typeof joinItemTable === 'string') {
+              joinTableParts.push(joinItemTable);
+            } else if (Array.isArray(joinItemTable) && joinItemTable.length === 2) {
+              joinTableParts.push(`${joinItemTable[0]} AS ${joinItemTable[1]}`);
+            } else {
+              return { type: "Error", message: "Invalid table format in JOIN clause" };
+            }
+          }
+          joinTableSql = joinTableParts.join(', ');
+        } else if (typeof joinItem.table === 'string') {
+          joinTableSql = joinItem.table;
+        }
+        else {
+          return { type: "Error", message: "Invalid table format in JOIN clause" };
+        }
+        sql += ` ${joinItem.type} ${joinTableSql} ON ${joinItem.on}`;
       });
     }
     const values = [];
@@ -92,12 +127,21 @@ export const selectDataInTable = async (options) => {
     let whereClause = '';
     if (where) {
       const whereClauses = [];
-      for (const column in where) {
-        if (where.hasOwnProperty(column)) {
-          const value = where[column];
-          whereClauses.push(`${column} = $${valueIndex}`);
-          values.push(value);
-          valueIndex++;
+      for (const key in where) {
+        if (where.hasOwnProperty(key)) {
+          const condition = where[key];
+          if (typeof condition === 'object' && condition.operator !== undefined && condition.value !== undefined) {
+            const { operator, value } = condition;
+            whereClauses.push(`${key} ${operator} $${valueIndex}`);
+            values.push(value);
+            valueIndex++;
+          } else if (condition === null) {
+            whereClauses.push(`${key} IS NULL`);
+          } else if (condition !== undefined) {
+            whereClauses.push(`${key} = $${valueIndex}`);
+            values.push(condition);
+            valueIndex++;
+          }
         }
       }
       if (whereClauses.length > 0) {
@@ -109,10 +153,14 @@ export const selectDataInTable = async (options) => {
       sql += ` ORDER BY ${orderBy} ${orderDirection.toUpperCase()}`;
     }
     if (limit && !(typeof limit !== 'number' || limit <= 0)) {
-      sql += ` LIMIT ${limit}`;
+      sql += ` LIMIT $${valueIndex}`;
+      values.push(limit);
+      valueIndex++;
     }
     if (offset && !(typeof offset !== 'number' || offset < 0)) {
-      sql += ` OFFSET ${offset}`;
+      sql += ` OFFSET $${valueIndex}`;
+      values.push(offset);
+      valueIndex++;
     }
     return {
       type: "Success",
