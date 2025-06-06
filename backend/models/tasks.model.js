@@ -66,8 +66,9 @@ export const TasksModel = {
   },
   createTask: async (data) => {
     try {
+      await pool.query("BEGIN");
       if (!data.hasOwnProperty("task")) {
-        return { type: "errorMsg", errorMsg: "Task data is required" };
+        throw new Error("Task data is required");
       }
       const options = {
         tableName: "tasks",
@@ -79,11 +80,11 @@ export const TasksModel = {
       }
       const sql = await insertDataInTable(options);
       if (sql.type == "Error") {
-        return { type: "errorMsg", errorMsg: sql.message };
+        throw new Error(sql.message);
       }
       const resultCreateTask = await pool.query(sql.message, sql.values);
       if (!resultCreateTask.rows.length) {
-        return { type: "errorMsg", errorMsg: "The task has not been created" };
+        throw new Error("The task has not been created");
       }
       if (data.hasOwnProperty("assignments")) {
         const taskId = resultCreateTask.rows[0].task_id;
@@ -92,26 +93,32 @@ export const TasksModel = {
         const existingUsersId = checkUsersExists.rows.map(row => row.user_id);
         const nonExistingUsers = usersId.filter(userId => !existingUsersId.includes(userId));
         if (nonExistingUsers.length > 0) {
-          return { type: "errorMsg", errorMsg: `Users with ids ${nonExistingUsers.join(', ')} do not exist` };
+          throw new Error(`Users with ids ${nonExistingUsers.join(", ")} do not exist`);
         }
         for (let userId of existingUsersId) {
           const resultTaskAssignments = await pool.query(`INSERT INTO task_assignments (task_id, user_id, assigned_at, is_completed) \
           VALUES ($1, $2, DEFAULT, DEFAULT) RERURNING task_assignment_id`, [taskId, userId]);
           if (!resultTaskAssignments.rows.length) {
             console.error("Error when insert data to task_assignment_id table", resultTaskAssignments);
-            return { type: "errorMsg", errorMsg: "Error when insert data to task_assignment_id table" };
+            throw new Error("Error when insert data to task_assignment_id table");
           }
         }
       }
+      await pool.query("COMMIT");
       return { type: "result", result: result.rows[0] };
     } catch (error) {
+      await pool.query("ROLLBACK");
+      if (error instanceof Error) {
+        return { type: "errorMsg", errorMsg: error.message };
+      }
       return { type: "errorMsg", errorMsg: "Error in Model createTask" };
     }
   },
   updateTaskById: async (taskId, data) => {
     try {
+      await pool.query("BEGIN");
       if (!data.hasOwnProperty("task")) {
-        return { type: "errorMsg", errorMsg: "Task data is required" };
+        throw new Error("Task data is required");
       }
       const options = {
         tableName: "tasks",
@@ -124,11 +131,11 @@ export const TasksModel = {
       }
       const sql = await updateDataInTable(options);
       if (sql.type == "Error") {
-        return { type: "errorMsg", errorMsg: sql.message };
+        throw new Error(sql.message);
       }
       const resultUpdateTask = await pool.query(sql.message, sql.values);
       if (!resultUpdateTask.rows.length) {
-        return { type: "errorMsg", errorMsg: "The task has not been updated" };
+        throw new Error("The task data has not been updated");
       }
       if (data.hasOwnProperty("assignments")) {
         const task_id = resultUpdateTask.rows[0].task_id;
@@ -137,20 +144,26 @@ export const TasksModel = {
         const existingUsersId = checkUsersExists.rows.map(row => row.user_id);
         const nonExistingUsers = usersId.filter(userId => !existingUsersId.includes(userId));
         if (nonExistingUsers.length > 0) {
-          return { type: "errorMsg", errorMsg: `Users with id ${nonExistingUsers.join(', ')} do not exist` };
+          throw new Error(`Users with id ${nonExistingUsers.join(", ")} do not exist`);
         }
         for (let userId of existingUsersId) {
           const resultTaskAssignments = await pool.query(`INSERT INTO task_assignments (task_id, user_id, assigned_at, is_completed) \
           VALUES ($1, $2, DEFAULT, DEFAULT) RERURNING task_assignment_id`, [task_id, userId]);
           if (!resultTaskAssignments.rows.length) {
             console.error("Error when insert data to task_assignment_id table", resultTaskAssignments);
-            return { type: "errorMsg", errorMsg: "Error when insert data to task_assignment_id table" };
+            throw new Error("Error when insert data to task_assignment_id table");
           }
         }
+        await pool.query("COMMIT");
         return { type: "result", result: `The task ${task_id} with assignments [${existingUsersId.join(", ")}] has been updated` }
       }
+      await pool.query("COMMIT");
       return { type: "result", result: `The task ${taskId} has been updated` };
     } catch (error) {
+      await pool.query("ROLLBACK");
+      if (error instanceof Error) {
+        return { type: "errorMsg", errorMsg: error.message };
+      }
       return { type: "errorMsg", errorMsg: "Error in Model updateTask" };
     }
   },

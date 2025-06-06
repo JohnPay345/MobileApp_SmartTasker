@@ -71,12 +71,13 @@ export const NotificationsModel = {
       return { type: "errorMsg", errorMsg: "Error in Model Register" };
     }
   },
-  saveInAppNotification: async (userId, eventType, title, body, notificationsData) => {
+  saveInAppNotification: async (notificationData) => {
     try {
+      const { userId, eventType, title, body, data } = notificationData;
       const result = await pool.query(
         `INSERT INTO notifications (user_id, notification_type, notification_title, notification_body, \
         notification_data, created_at) VALUES ($1, $2, $3, $4, $5, NOW()) RETURNING notification_id`,
-        [userId, eventType, title, body, JSON.stringify(notificationsData)]
+        [userId, eventType, title, body, JSON.stringify(data)]
       );
       if (!result.rows[0].length) {
         return { type: "errorMsg", errorMsg: `Failed to insert in-app notification for user ${userId}` }
