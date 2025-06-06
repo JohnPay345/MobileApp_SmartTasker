@@ -1,5 +1,5 @@
-import { ProjectsModel } from "../models/projects.models";
-import { errorReplyCodes, replyResult } from "../service/duplicatePartsCode";
+import { ProjectsModel } from "#models/projects.models.js";
+import { errorReplyCodes, replyResult } from "#root/service/duplicatePartsCode.js";
 
 export const ProjectsController = {
   GetProjects: async (req, rep) => {

@@ -1,4 +1,4 @@
-import { pool } from "../db/connection.js";
+import { pool } from "#root/service/connection.js";
 import { config } from "dotenv";
 import { insertDataInTable, selectDataInTable } from "../service/duplicatePartsCode.js";
 
@@ -52,7 +52,7 @@ export const ProjectsModel = {
       if (sqlGetProjects.type == "Error") {
         return { type: "errorMsg", errorMsg: sqlGetProjects.message };
       }
-      const result = await pool.query(sql.message, sql.values);
+      const result = await pool.query(sqlGetProjects.message, sqlGetProjects.values);
       if (!result.rows.length) {
         return { type: "errorMsg", errorMsg: "List projects not found" };
       }
@@ -63,6 +63,7 @@ export const ProjectsModel = {
   },
   createProject: async (data) => {
     try {
+      await pool.query("BEGIN");
       const options = {
         table: "projects",
         data: data,
@@ -71,21 +72,27 @@ export const ProjectsModel = {
       }
       const sql = await insertDataInTable(options);
       if (sql.type == "Error") {
-        return { type: "errorMsg", errorMsg: sql.message };
+        throw new Error(sql.message);
       }
-      const result = await pool.query();
+      const result = await pool.query(sql.message, sql.values);
       if (!result.rows.length) {
-        return { type: "errorMsg", errorMsg: "The project has not been created" };
+        throw new Error("The project has not been created");
       }
+      await pool.query("COMMIT");
       return { type: "result", result: result.rows }
     } catch (error) {
+      await pool.query("ROLLBACK");
+      if (error instanceof Error) {
+        return { type: "errorMsg", errorMSg: error.message };
+      }
       return { type: "errorMsg", errorMsg: "Error in Model createProject" };
     }
   },
   updateProjectById: async (projectId, data) => {
     try {
+      await pool.query("BEGIN");
       if (!data.hasOwnProperty("project")) {
-        return { type: "errorMsg", errorMsg: "Project data is required" };
+        throw new Error("Project data is required");
       }
       const options = {
         tableName: "project",
@@ -96,11 +103,11 @@ export const ProjectsModel = {
       }
       const sql = await updateDataInTable(options);
       if (sql.type == "Error") {
-        return { type: "errorMsg", errorMsg: sql.message };
+        throw new Error(sql.message);
       }
       const resultUpdateTask = await pool.query(sql.message, sql.values);
       if (!resultUpdateTask.rows.length) {
-        return { type: "errorMsg", errorMsg: "The project has not been updated" };
+        throw new Error("The project has not been updated");
       }
       if (data.hasOwnProperty("assignments")) {
         const project_id = resultUpdateTask.rows[0].project_id;
@@ -109,20 +116,26 @@ export const ProjectsModel = {
         const existingUsersId = checkUsersExists.rows.map(row => row.user_id);
         const nonExistingUsers = usersId.filter(userId => !existingUsersId.includes(userId));
         if (nonExistingUsers.length > 0) {
-          return { type: "errorMsg", errorMsg: `Users with id ${nonExistingUsers.join(', ')} do not exist` };
+          throw new Error(`Users with ids ${nonExistingUsers.join(", ")} do not exist`);
         }
         for (let userId of existingUsersId) {
           const resultTaskAssignments = await pool.query(`INSERT INTO projects_assignments (project_id, user_id, assigned_at, is_completed) \
               VALUES ($1, $2, DEFAULT, DEFAULT) RERURNING project_assignment_id`, [project_id, userId]);
           if (!resultTaskAssignments.rows.length) {
             console.error("Error when insert data to project_assignment_id table", resultTaskAssignments);
-            return { type: "errorMsg", errorMsg: "Error when insert data to project_assignment_id table" };
+            throw new Error("Error when isert data to project_assignment_id table")
           }
         }
+        await pool.query("COMMIT");
         return { type: "result", result: `The project ${project_id} with assignments [${existingUsersId.join(", ")}] has been updated` }
       }
+      await pool.query("COMMIT");
       return { type: "result", result: `The project ${projectId} has been updated` };
     } catch (error) {
+      await pool.query("ROLLBACK");
+      if (error instanceof Error) {
+        return { type: "errorMsg", errorMsg: error.message };
+      }
       return { type: "errorMsg", errorMsg: "Error in Model updateProject" };
     }
   },

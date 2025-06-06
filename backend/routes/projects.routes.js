@@ -1,7 +1,7 @@
-import { ProjectsController } from "../controllers/projects.controller";
+import { ProjectsController } from "#controllers/projects.controller.js";
 import { authenticateToken, verifyRefreshToken } from "../middleware/authentication.js";
 
-export const ProjectsRouter = (fastify, options, done) => {
+export const ProjectsRoutes = (fastify, options, done) => {
   fastify.get("/projects/:userId/list", ProjectsController.GetProjects);
   fastify.get("/projects/:userId/:projectId", ProjectsController.GetProjectById);
   fastify.post("/projects/:userId", ProjectsController.CreateProject);
