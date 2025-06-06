@@ -6,10 +6,10 @@ export const UserRoutes = (fastify, options, done) => {
   fastify.post("/register", UserController.register);
   fastify.post("/login", UserController.login);
   fastify.get("/users", { preHandler: authenticateToken }, UserController.getAllUsers);
-  fastify.get("/users/:id", { preHandler: authenticateToken }, UserController.getUserById);
-  fastify.put("/users/:id", { preHandler: authenticateToken, preHandler: uploadAvatars.single("avatar") }, UserController.updateUser);
-  fastify.delete("/users/:id", { preHandler: authenticateToken }, UserController.deleteUser);
-  fastify.get("/updateTokens/:id", { preHandler: verifyRefreshToken }, UserController.updateTokens)
+  fastify.get("/users/:userId", { preHandler: authenticateToken }, UserController.getUserById);
+  fastify.put("/users/:userId", { preHandler: authenticateToken, preHandler: uploadAvatars.single("avatar") }, UserController.updateUser);
+  fastify.delete("/users/:userId", { preHandler: authenticateToken }, UserController.deleteUser);
+  fastify.get("/updateTokens/:userId", { preHandler: verifyRefreshToken }, UserController.updateTokens)
 
   done();
 }

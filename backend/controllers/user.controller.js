@@ -1,25 +1,31 @@
 import { UserModel } from "../models/user.model.js";
 import { setDate } from "../utils/date.js";
-import { replyResult } from "../service/duplicatePartsCode.js";
+import { errorReplyCodes, replyResult } from "../service/duplicatePartsCode.js";
 
 export const UserController = {
   register: async (req, rep) => {
-    const { firstName, middleName, email, phone, password } = req.body;
-    if (!firstName || !middleName || !email || !phone || !password) {
-      return rep.code(400).send({ code: 400, url: req.url, message: "All fields are required" });
+    if (!req.body) {
+      return errorReplyCodes.reply400("MISSING_REQUIRED_FIELD");
+    }
+    const { data } = req.body;
+    if (!data || typeof data !== 'object') {
+      return errorReplyCodes.reply400("MISSING_REQUIRED_FIELD");
     }
     try {
-      const result = await UserModel.register(firstName, middleName, email, phone, password);
+      const result = await UserModel.register(data);
       return replyResult(result);
     } catch (error) {
       console.error("Error at registration", error);
-      return rep.code(500).send({ code: 200, url: req.url, message: "Internal Server Error" });
+      return errorReplyCodes.reply500("DEFAULT")
     }
   },
   login: async (req, rep) => {
+    if (!req.body) {
+      return errorReplyCodes.reply400("MISSING_REQUIRED_FIELD");
+    }
     const { email, password } = req.body;
     if (!email || !password) {
-      return rep.code(400).send({ code: 400, url: req.url, message: "All fields are required" });
+      return errorReplyCodes.reply400("MISSING_REQUIRED_FIELD");
     }
     try {
       const result = await UserModel.login(email, password);
@@ -35,7 +41,7 @@ export const UserController = {
       }
     } catch (error) {
       console.error("Error at login", error);
-      return rep.code(500).send({ code: 500, url: req.url, message: "Internal Server Error" });
+      return errorReplyCodes.reply500("DEFAULT");
     }
   },
   getAllUsers: async (req, rep) => {
@@ -44,65 +50,70 @@ export const UserController = {
       return replyResult(result);
     } catch (error) {
       console.error("Error at get all users", error);
-      return rep.code(500).send({ code: 500, url: req.url, message: "Internal Server Error" });
+      return errorReplyCodes.reply500("DEFAULT");
     }
   },
   getUserById: async (req, rep) => {
-    const { id } = req.params;
-    if (!id) {
-      return rep.code(400).send({ code: 400, url: req.url, message: "Id isn't found" })
+    const { userId } = req.params;
+    const reqUserId = req.user.userId;
+    if (userId !== reqUserId) {
+      return errorReplyCodes.reply403("DEFAULT", `There no access for user ${userId}`);
     }
     try {
       const result = await UserModel.getUserById(id);
       return replyResult(result);
     } catch (error) {
       console.error("Error at get user by id", error);
-      return rep.code(500).send({ code: 500, url: req.url, message: "Internal Server Error" });
+      return errorReplyCodes.reply500("DEFAULT");
     }
   },
   updateUser: async (req, rep) => {
-    const { id } = req.params;
-    if (!req.body) {
-      return rep.code(400).send({ code: 400, url: req.url, message: "To update, you need to change something" });
+    const { userId } = req.params;
+    const reqUserId = req.user.userId;
+    if (userId !== reqUserId) {
+      return errorReplyCodes.reply403("DEFAULT", `There no access for user ${userId}`);
     }
-    const { name, email, password, bio } = req.body;
-    if (id !== req.user.userId) {
-      return rep.code(403).send({ code: 403, url: req.url, message: "There is no access" });
+    if (!req.body) {
+      return errorReplyCodes.reply400("MISSING_REQUIRED_FIELD");
+    }
+    const { data } = req.body;
+    if (!data || typeof data !== "object") {
+      return errorReplyCodes.reply400("MISSING_REQUIRED_FIELD");
     }
     try {
-      const result = await UserModel.updateUser(id, name, email, password, bio);
+      const result = await UserModel.updateUser(userId, data);
       return replyResult(result);
-
     } catch (error) {
       console.error("Error at update user", error);
-      return rep.code(500).send({ code: 500, url: req.url, message: "Internal Server Error" });
+      return errorReplyCodes.reply500("DEFAULT");
     }
   },
   deleteUser: async (req, rep) => {
-    const { id } = req.params;
-    if (id !== req.user.userId) {
-      return rep.code(400).send({ code: 400, url: req.url, message: "There is no access" });
+    const { userId } = req.params;
+    const reqUserId = req.user.userId;
+    if (userId !== reqUserId) {
+      return errorReplyCodes.reply400("DEFAULT", `There no access for user ${userId}`);
     }
     try {
       const result = await UserModel.deleteUser(id);
       return replyResult(result);
-
     } catch (error) {
       console.error("Error at deleted user", error);
-      return rep.code(500).send({ code: 500, url: req.url, message: "Internal Server Error" });
+      return errorReplyCodes.reply500("DEFAULT");
     }
   },
   updateTokens: async (req, rep) => {
-    const { id } = req.params;
+    const { userId } = req.params;
+    const reqUserId = req.user.userId;
     const authHeader = req.headers["cookie"];
     if (!authHeader) {
-      return rep.code(401).send({ code: 401, url: req.url, message: "Invalid Token" });
+      return errorReplyCodes.reply401("EXPIRED_TOKEN");
     }
-    if (id !== req.user.userId) {
-      return rep.code(400).send({ code: 400, url: req.url, message: "There is no access" });
+    if (userId !== reqUserId) {
+      return errorReplyCodes.reply403("DEFAULT", `There no access for user ${userId}`);
     }
     try {
-      const result = await UserModel.updateTokens(id, authHeader);
+      const result = await UserModel.updateTokens(userId, authHeader);
       switch (result.type) {
         case "result":
           rep.header("Set-Cookie", `refresh_token=${result.result.refresh_token};Expires=${setDate(30).toUTCString()};HttpOnly;`);
@@ -115,7 +126,7 @@ export const UserController = {
       }
     } catch (error) {
       console.error("Error at update tokens", error);
-      return rep.code(500).send({ code: 500, url: req.url, message: "Internal Server Error" });
+      return errorReplyCodes.reply500("DEFAULT");
     }
   }
 }
