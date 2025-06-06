@@ -1,9 +1,10 @@
 import amqp from 'amqplib';
-import { config } from 'dotenv'
+import { config } from 'dotenv';
 
 config()
 
 let connection = null;
+let channel = null;
 export const RabbitMQ_Config = {
   connectRabbitMQ: async () => {
     try {
@@ -16,10 +17,8 @@ export const RabbitMQ_Config = {
     }
   },
   createChannel: async () => {
-    if (connection) {
-      await RabbitMQ_Config.connectRabbitMQ(); // Повторная попытка подключения
-    }
-    return await connection.createChannel();
+    channel = await connection.createChannel();
+    return channel;
   },
   closeConnection: async () => {
     if (connection) {

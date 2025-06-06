@@ -8,24 +8,15 @@ export const RabbitMQ_Settings = {
   ],
   queues: [
     {
-      "name": "notifications_push",
+      "name": "notifications.push",
       "durable": true
-    },
-    {
-      "name": "notifications_inapp",
-      "durable": true
-    },
+    }
   ],
   bindings: [
     {
       "exchange": "notifications",
-      "queue": "notifications_push",
+      "queue": "notifications.push",
       "routingKey": "notifications.push"
-    },
-    {
-      "exchange": "notifications",
-      "queue": "notifications_inapp",
-      "routingKey": "notifications.inapp"
-    },
+    }
   ]
 }

@@ -1,31 +1,40 @@
-import { RabbitMQ_Config } from './rabbitmq_config.js';
+import { webSocketService } from '#rmq/service/websocket.js';
+import { RabbitMQ_Config } from '#rmq/rabbitmq_config.js';
+import { NotificationsModel } from "#/models/notifications.models.js";
 
 const pushQueue = 'notifications.push';
-const inAppQueue = 'notifications.inapp';
 
-const publishMessage = async (queue, message) => {
+const publishMessage = async (type, action, message) => {
   try {
-    const channel = await RabbitMQ_Config.createChannel();
-    await channel.assertQueue(queue, { durable: true });
-    channel.sendToQueue(queue, Buffer.from(JSON.stringify(message)));
-    console.log(`Sent message to ${queue}:`, message);
-    await channel.close();
+    if (message == null || message == "" || queue == "" || queue == null) {
+      console.log('Message and queue must be filled!');
+      return;
+    }
+    const userId = message.data.userId;
+    if (webSocketService.isUserConnected(userId)) {
+      const result = await NotificationsModel.saveInAppNotification(message.data);
+      if (!result) {
+        console.error('Failed to save in-app notification to database');
+        return;
+      }
+      const websocketMessage = {
+        type: type,
+        action: action,
+        notification: {
+          notificationId: result.notification_id,
+          title: message.data.title,
+          body: message.data.body
+        }
+      };
+      webSocketService.sendNotification(userId, websocketMessage);
+    } else {
+      const channel = RabbitMQ_Config.chanel;
+      await channel.assertQueue(pushQueue, { durable: true });
+      channel.sendToQueue(pushQueue, Buffer.from(JSON.stringify(notification)));
+      console.log(`Sent message to ${pushQueue}:`, notification);
+      await channel.close();
+    }
   } catch (error) {
     console.error('Error publishing message:', error);
   }
 }
-
-export const publisher = {
-  publishEvent: async (eventType, eventData) => {
-    const message = { ...eventData, eventType };
-    if (eventType.startsWith('task.') || eventType === 'manual.push') {
-      await publishMessage(pushQueue, message);
-    } else if (eventType.startsWith('contact.') || eventType === 'manual.inapp') {
-      await publishMessage(inAppQueue, message);
-    } else if (eventType.startsWith('project.')) {
-      await publishMessage(pushQueue, message);
-    } else {
-      console.warn(`Unknown event type: ${eventType}`);
-    }
-  }
-};
