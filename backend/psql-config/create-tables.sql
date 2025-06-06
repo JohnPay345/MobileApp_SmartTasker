@@ -91,7 +91,7 @@ CREATE TABLE user_devices (
   user_id UUID REFERENCES users (user_id) ON DELETE CASCADE NOT NULL, --  Ссылка на пользователя
   device_type device_type DEFAULT 'android' NOT NULL, -- Тип устройства
   device_token TEXT NOT NULL, -- Токен устройства
-  push_token TEXT NOT NULL, -- Токен для отправки Push-уведомлений (FCM token или APNs device token)
+  push_token TEXT, -- Токен для отправки Push-уведомлений (FCM token или APNs device token)
   created_at TIMESTAMP WITH TIME ZONE,
   updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );

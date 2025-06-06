@@ -26,5 +26,12 @@
   },
   "devDependencies": {
     "nodemon": "^3.1.9"
+  },
+  "imports": {
+    "#root/*": "./*",
+    "#rmq/*": "./rabbitmq/*",
+    "#controllers/*": "./controllers/*",
+    "#routes/*": "./routes/*",
+    "#models/*": "./models/*"
   }
 }
