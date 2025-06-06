@@ -1,13 +1,14 @@
 import Fastify from 'fastify';
 import { config } from "dotenv";
 import path from "path";
-import { routes } from "./routes/index.js";
+import { routes } from "#routes/index.js";
 import fastifyMultipart from '@fastify/multipart';
 import fastifyStatic from '@fastify/static';
-import { __dirname } from './utils/dirname.js';
-import { setupWebsocketServer } from './service/websocket.js';
-import { RabbitMQ_Config } from './rabbitmq/rabbitmq_config.js';
-import { pushConsumer } from './rabbitmq/consumers/pushConsumer.js';
+import { __dirname } from '#root/utils/dirname.js';
+import { webSocketService } from '#root/service/websocket.js';
+import { RabbitMQ_Config } from '#rmq/rabbitmq_config.js';
+import { pushConsumer } from '#rmq/consumers/pushConsumer.js';
+import { createResources } from '#rmq/resourceCreator.js';
 
 config();
 
@@ -38,14 +39,14 @@ fastify.register(fastifyStatic, {
 // Регистрируем все api пути
 fastify.register(routes);
 
-RabbitMQ_Config.connectRabbitMQ()
-  .then(() => {
-    pushConsumer.startPushConsumer();
-  })
+// Создание подключения брокера сообщений
+createResources()
+  .then(() => pushConsumer.startPushConsumer())
   .catch((err) => console.log(err));
 
+
 // Настройка веб-сокета сервера
-setupWebsocketServer(fastify);
+webSocketService.setupWebsocketServer(fastify.server);
 
 fastify.listen({ port, host }, (err, address) => {
   if (err) {

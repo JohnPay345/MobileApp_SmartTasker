@@ -2,7 +2,7 @@ import { createAvatar } from '@dicebear/core';
 import { initials } from '@dicebear/collection';
 import fs from "fs";
 
-export const generateAvatar = (name, filePath) => {
+export const generateAvatar = async (name, filePath) => {
   const avatar = createAvatar(initials, {
     seed: name,
     textColor: ['646f77'],
@@ -11,5 +11,5 @@ export const generateAvatar = (name, filePath) => {
   });
 
   const svg = avatar.toString();
-  fs.writeFileSync(filePath, svg);
+  fs.writeFile(filePath, svg);
 }
