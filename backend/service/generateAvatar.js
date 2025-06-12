@@ -1,5 +1,5 @@
 import { createAvatar } from '@dicebear/core';
-import { initials } from '@dicebear/collection';
+import { initials } from "@dicebear/collection";
 import fs from "fs";
 
 export const generateAvatar = async (name, filePath) => {
