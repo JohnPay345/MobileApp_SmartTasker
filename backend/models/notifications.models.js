@@ -1,5 +1,4 @@
-import { pool } from "../service/connection.js";
-import { updateDataInTable } from "../service/duplicatePartsCode.js";
+import { updateDataInTable } from "#root/service/duplicatePartsCode.js";
 
 export const NotificationsModel = {
   registerTokens: async (userId, deviceToken, deviceType, pushToken) => {
@@ -29,7 +28,14 @@ export const NotificationsModel = {
       }
       return { type: "result", result: result.rows[0] };
     } catch (error) {
-      return { type: "errorMsg", errorMsg: "Error in Model Register" };
+      return { type: "errorMsg", errorMsg: "Error in Model getSettingsNotifications" };
+    }
+  },
+  getInAppNotifications: async (userId) => {
+    try {
+
+    } catch (error) {
+      return { type: "errorMsg", errorMsg: "Error in Model getInAppNotifications" };
     }
   },
   createSettingsNotifications: async (userId, noticeSettings, noticeSettingsTasks, noticeSettingsProjects) => {
@@ -44,7 +50,7 @@ export const NotificationsModel = {
       }
       return { type: "result", result: result.rows[0] };
     } catch (error) {
-      return { type: "errorMsg", errorMsg: "Error in Model Register" };
+      return { type: "errorMsg", errorMsg: "Error in Model createSettingsNotifications" };
     }
   },
   updateSettingsNotifications: async (userId, noticeSettings, noticeSettingsTasks, noticeSettingsProjects) => {
@@ -60,15 +66,15 @@ export const NotificationsModel = {
       const returningColumns = ["notifications_id"];
       const sql = updateDataInTable("user_notifications_settings", data, whereConditions, returningColumns);
       if (sql.type !== "Error") {
-        return { type: "errorMsg", errorMsg: sql.message };
+        throw new Error(sql.message);
       }
       const result = await pool.query(sql.message, sql.values);
       if (!result.rows[0].length) {
-        return { type: "errorMsg", errorMsg: `Couldn't update notifications settings for user ${userId}` };
+        throw new Error(`Couldn't update notifications settings for user ${userId}`);
       }
       return { type: "result", result: result.rows[0] };
     } catch (error) {
-      return { type: "errorMsg", errorMsg: "Error in Model Register" };
+      return { type: "errorMsg", errorMsg: "Error in Model updateSettingsNotifications" };
     }
   },
   saveInAppNotification: async (notificationData) => {
@@ -80,12 +86,11 @@ export const NotificationsModel = {
         [userId, eventType, title, body, JSON.stringify(data)]
       );
       if (!result.rows[0].length) {
-        return { type: "errorMsg", errorMsg: `Failed to insert in-app notification for user ${userId}` }
+        return { type: "errorMsg", errorMsg: `Failed to insert in-app notification for user ${userId}` };
       }
       return result.rows[0].id;
     } catch (error) {
-      console.error('Error saving in-app notification:', error);
-      return null;
+      return { type: "errorMsg", errorMsg: "Error in Model saveInAppNotification" };
     }
   },
 }

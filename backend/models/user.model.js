@@ -1,6 +1,5 @@
 import bcrypt from 'bcrypt';
 import { config } from "dotenv";
-import { pool } from "#root/service/connection.js";
 import { generateTokens, getFieldUser } from "#root/service/token.js";
 import { __dirname } from "#root/utils/dirname.js";
 import { generateAvatar } from '#root/service/generateAvatar.js';

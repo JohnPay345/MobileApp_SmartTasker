@@ -1,6 +1,5 @@
 import { config } from "dotenv";
-import { pool } from "../service/connection.js";
-import { insertDataInTable, selectDataInTable, updateDataInTable } from "../service/duplicatePartsCode.js";
+import { insertDataInTable, selectDataInTable, updateDataInTable } from "#root/service/duplicatePartsCode.js";
 
 config();
 
