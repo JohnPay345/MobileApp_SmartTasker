@@ -136,7 +136,7 @@ dist
 .pnp.*
 
 # images
-images/
+/images
 
 # docx doc
 *.docx
