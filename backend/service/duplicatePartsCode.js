@@ -1,4 +1,4 @@
-export const replyResult = (result) => {
+export const replyResult = (result, req, rep) => {
   switch (result.type) {
     case "result":
       return rep.code(200).send({ code: 200, url: req.url, message: result.result });
@@ -11,7 +11,7 @@ export const replyResult = (result) => {
 }
 
 export const errorReplyCodes = {
-  reply400: async (reasonError = "DEFAULT", errorMessage = "") => {
+  reply400: async (reasonError = "DEFAULT", errorMessage = "", req, rep) => {
     const reasonErrorTypes = {
       "INVALID_INPUT": "One or more input parameters are invalid",
       "MISSING_REQUIRED_FIELD": "A required field is missing from the request",
@@ -21,7 +21,7 @@ export const errorReplyCodes = {
     errorMessage = !errorMessage ? reasonErrorTypes[reasonError] || reasonErrorTypes["DEFAULT"] : errorMessage;
     return rep.code(400).send({ code: 400, url: req.url, message: errorMessage });
   },
-  reply401: async (reasonError = "DEFAULT", errorMessage = "") => {
+  reply401: async (reasonError = "DEFAULT", errorMessage = "", req, rep) => {
     const reasonErrorTypes = {
       "INVALID_CREDENTIALS": "Invalid username or password",
       "MISSING_TOKEN": "Authorization token is missing",
@@ -31,7 +31,7 @@ export const errorReplyCodes = {
     errorMessage = !errorMessage ? reasonErrorTypes[reasonError] || reasonErrorTypes["DEFAULT"] : errorMessage;
     return rep.code(401).send({ code: 401, url: req.url, message: errorMessage });
   },
-  reply403: async (reasonError = "DEFAULT", errorMessage = "") => {
+  reply403: async (reasonError = "DEFAULT", errorMessage = "", req, rep) => {
     const reasonErrorTypes = {
       "INSUFFICIENT_PERMISSIONS": "You do not have permission to access this resource",
       "ACCOUNT_DISABLED": "Account is disabled",
@@ -40,7 +40,7 @@ export const errorReplyCodes = {
     errorMessage = !errorMessage ? reasonErrorTypes[reasonError] || reasonErrorTypes["DEFAULT"] : errorMessage;
     return rep.code(403).send({ code: 403, url: req.url, message: errorMessage });
   },
-  reply404: async (reasonError = "DEFAULT", errorMessage = "") => {
+  reply404: async (reasonError = "DEFAULT", errorMessage = "", req, rep) => {
     const reasonErrorTypes = {
       "RESOURCE_NOT_FOUND": "Resource not found",
       "ROUTE_NOT_FOUND": "Route not found",
@@ -49,7 +49,7 @@ export const errorReplyCodes = {
     errorMessage = !errorMessage ? reasonErrorTypes[reasonError] || reasonErrorTypes["DEFAULT"] : errorMessage;
     return rep.code(404).send({ code: 404, url: req.url, message: errorMessage });
   },
-  reply500: async (reasonError = "DEFAULT", errorMessage = "") => {
+  reply500: async (reasonError = "DEFAULT", errorMessage = "", req, rep) => {
     const reasonErrorTypes = {
       "DATABASE_ERROR": "A database error occurred",
       "THIRD_PARTY_API_ERROR": "Error communicating with a third-party API",
