@@ -1,7 +1,8 @@
-import { authenticateToken, verifyRefreshToken } from "../middleware/authentication.js";
-import { ContactsController } from "../controllers/contacts.controller.js";
+import { authenticateToken, verifyRefreshToken } from "#root/middleware/authentication.js";
+import { ContactsController } from "#controllers/contacts.controller.js";
 
 export const ContactsRoutes = (fastify, options, done) => {
+  fastify.get("/contacts/:userId", ContactsController.GetContacts);
   fastify.get("/contacts/:userId", ContactsController.GetContactsByUserId);
   fastify.post("/contacts/:userId", ContactsController.CreateContacts);
   fastify.put("/contacts/:userId", ContactsController.UpdateContact);

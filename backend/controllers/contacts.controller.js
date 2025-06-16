@@ -1,7 +1,27 @@
-import { errorReplyCodes } from "../service/duplicatePartsCode.js";
-import { ContactsModel } from "../models/contacts.models.js";
+import { errorReplyCodes, replyResult } from "#root/service/duplicatePartsCode.js";
+import { ContactsModel } from "#models/contacts.models.js";
 
 export const ContactsController = {
+  GetContacts: async (req, rep) => {
+    try {
+      const { userId } = req.params;
+      const reqUserId = req.user.userId;
+      if (userId !== reqUserId) {
+        return errorReplyCodes.reply403("DEFAULT", `There no access for user ${userId}`);
+      }
+      if (!req.body) {
+        return errorReplyCodes.reply400("MISSING_REQUIRED_FIELD");
+      }
+      const dataForEvaluate = req.body;
+      if (!dataForEvaluate || typeof dataForEvaluate !== 'object') {
+        return errorReplyCodes.reply400("MISSING_REQUIRED_FIELD");
+      }
+      const result = await ContactsModel.getContacts(dataForEvaluate);
+      return replyResult(result);
+    } catch (error) {
+      return errorReplyCodes.reply500("DEFAULT");
+    }
+  },
   GetContactsByUserId: async (req, rep) => {
     try {
       return rep.code(200).send({ code: 200, url: req.url, message: "Success!" });
