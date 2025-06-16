@@ -1,6 +1,6 @@
 import multer from "fastify-multer";
 import path from "path";
-import { __dirname } from "../utils/dirname.js";
+import { __dirname } from "#root/utils/dirname.js";
 
 // Настройка хранилища для аватарок
 const avatarStorage = multer.diskStorage({

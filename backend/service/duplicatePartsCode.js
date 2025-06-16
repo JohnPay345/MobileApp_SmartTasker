@@ -191,7 +191,7 @@ export const insertDataInTable = async (options) => {
       }
     }
     const columns = Object.keys(data);
-    let values = [];
+    let values = new Map();
     let setClauses = [];
     let paramIndex = 1;
     for (const key in data) {
@@ -201,17 +201,17 @@ export const insertDataInTable = async (options) => {
           setClauses.push(`"${key}" = NULL`);
         } else if (Array.isArray(value)) {
           setClauses.push(`UNNEST($${paramIndex})`);
-          values.push(value);
+          values.set(key, value);
           paramIndex++;
         } else if (typeof value === 'object' && value !== null) {
           setClauses.push(`$${paramIndex}`);
-          values.push(JSON.stringify(value));
+          values.set(key, JSON.stringify(value));
           paramIndex++;
         } else if (value === 'DEFAULT') {
           setClauses.push(`DEFAULT`);
         } else {
           setClauses.push(`"$${paramIndex}`);
-          values.push(value);
+          values.set(key, value);
           paramIndex++;
         }
       }
@@ -251,7 +251,7 @@ export const updateDataInTable = async (options) => {
       }
     }
     let setClauses = [];
-    let values = [];
+    let values = new Map();
     let paramIndex = 1;
     for (const key in data) {
       if (data.hasOwnProperty(key)) {
@@ -260,21 +260,21 @@ export const updateDataInTable = async (options) => {
           setClauses.push(`"${key}" = NULL`);
         } else if (typeof value === 'object' && value !== null) {
           setClauses.push(`"${key}" = $${paramIndex}`);
-          values.push(JSON.stringify(value));
+          values.set(key, JSON.stringify(value));
           paramIndex++;
         } else if (Array.isArray(value)) {
           setClauses.push(`"${key}" = UNNEST($${paramIndex})`);
-          values.push(value);
+          values.set(key, value);
           paramIndex++;
         } else if (typeof value === 'object' && value !== null) {
           setClauses.push(`"${key}" = $${paramIndex}`);
-          values.push(JSON.stringify(value));
+          values.set(key, JSON.stringify(value));
           paramIndex++;
         } else if (value === 'DEFAULT') {
           setClauses.push(`"${key}" = DEFAULT`);
         } else {
           setClauses.push(`"${key}" = $${paramIndex}`);
-          values.push(value);
+          values.set(key, value);
           paramIndex++;
         }
       }
@@ -283,7 +283,7 @@ export const updateDataInTable = async (options) => {
     for (const key in whereClause) {
       if (whereClause.hasOwnProperty(key)) {
         whereClauses.push(`"${key}" = $${paramIndex}`);
-        values.push(whereClause[key]);
+        values.set(key, whereClause[key]);
         paramIndex++;
       }
     }
