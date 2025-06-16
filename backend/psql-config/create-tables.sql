@@ -36,7 +36,6 @@ CREATE TYPE gender_type AS ENUM ('Мужчина', 'Женщина');
 -- Enum для статуса приглашённого
 CREATE TYPE status_invitation_type AS ENUM ('Зарегистрирован', 'Не зарегистрирован');
 
-
 -- Enum для статуса задачи
 CREATE TYPE task_status_type AS ENUM ('Черновик', 'В работе', 'Выполнена', 'Неактуальна', 'Провалена');
 
@@ -91,7 +90,6 @@ CREATE TABLE user_devices (
   user_id UUID REFERENCES users (user_id) ON DELETE CASCADE NOT NULL, --  Ссылка на пользователя
   device_type device_type DEFAULT 'android' NOT NULL, -- Тип устройства
   device_token TEXT NOT NULL, -- Токен устройства
-  push_token TEXT, -- Токен для отправки Push-уведомлений (FCM token или APNs device token)
   created_at TIMESTAMP WITH TIME ZONE,
   updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
