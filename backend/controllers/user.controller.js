@@ -1,6 +1,6 @@
-import { UserModel } from "../models/user.model.js";
-import { setDate } from "../utils/date.js";
-import { errorReplyCodes, replyResult } from "../service/duplicatePartsCode.js";
+import { UserModel } from "#models/user.model.js";
+import { setDate } from "#root/utils/date.js";
+import { errorReplyCodes, replyResult } from "#root/service/duplicatePartsCode.js";
 
 export const UserController = {
   register: async (req, rep) => {
@@ -70,6 +70,7 @@ export const UserController = {
   updateUser: async (req, rep) => {
     const { userId } = req.params;
     const reqUserId = req.user.userId;
+    let filePath = "";
     if (userId !== reqUserId) {
       return errorReplyCodes.reply403("DEFAULT", `There no access for user ${userId}`);
     }
@@ -79,6 +80,12 @@ export const UserController = {
     const { data } = req.body;
     if (!data || typeof data !== "object") {
       return errorReplyCodes.reply400("MISSING_REQUIRED_FIELD");
+    }
+    if (req.file && req.file.path) {
+      filePath = req.file.path;
+    }
+    if (filePath) {
+      data.user.avatarPath = `/uploads/avatars/${filePath}`;
     }
     try {
       const result = await UserModel.updateUser(userId, data);
@@ -126,6 +133,51 @@ export const UserController = {
       }
     } catch (error) {
       console.error("Error at update tokens", error);
+      return errorReplyCodes.reply500("DEFAULT");
+    }
+  },
+  getUserStats: async (req, rep) => {
+    const { userId } = req.params;
+    const reqUserId = req.user.userId;
+    if (userId !== reqUserId) {
+      return errorReplyCodes.reply403("DEFAULT", `There no access for user ${userId}`);
+    }
+    try {
+      const statsResult = await UserModel.getUserStats(userId);
+      if (statsResult.type === "errorMsg") {
+        return rep.code(400).send({ 
+          code: 400, 
+          url: req.url, 
+          message: statsResult.errorMsg 
+        });
+      }
+      const activityResult = await UserModel.getUserRecentActivity(userId);
+      if (activityResult.type === "errorMsg") {
+        return rep.code(400).send({ 
+          code: 400, 
+          url: req.url, 
+          message: activityResult.errorMsg 
+        });
+      }
+      const performanceResult = await UserModel.getUserPerformance(userId);
+      if (performanceResult.type === "errorMsg") {
+        return rep.code(400).send({ 
+          code: 400, 
+          url: req.url, 
+          message: performanceResult.errorMsg 
+        });
+      }
+      return rep.code(200).send({
+        code: 200,
+        url: req.url,
+        result: {
+          stats: statsResult.result,
+          recentActivity: activityResult.result,
+          performance: performanceResult.result
+        }
+      });
+    } catch (error) {
+      console.error("Error at get user statistics:", error);
       return errorReplyCodes.reply500("DEFAULT");
     }
   }

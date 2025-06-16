@@ -1,5 +1,5 @@
-import { TasksModel } from "../models/tasks.model.js";
-import { errorReplyCodes, replyResult } from "../service/duplicatePartsCode.js";
+import { TasksModel } from "#models/tasks.model.js";
+import { errorReplyCodes, replyResult } from "#root/service/duplicatePartsCode.js";
 
 export const TasksController = {
   GetTasksByUserId: async (req, rep) => {

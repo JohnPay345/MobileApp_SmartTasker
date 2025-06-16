@@ -1,5 +1,5 @@
 import { ProjectsController } from "#controllers/projects.controller.js";
-import { authenticateToken, verifyRefreshToken } from "../middleware/authentication.js";
+import { authenticateToken, verifyRefreshToken } from "#root/middleware/authentication.js";
 
 export const ProjectsRoutes = (fastify, options, done) => {
   fastify.get("/projects/:userId/list", ProjectsController.GetProjects);

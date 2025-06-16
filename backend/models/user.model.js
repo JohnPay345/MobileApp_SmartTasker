@@ -24,7 +24,8 @@ export const UserModel = {
       const fullName = `${firstName}-${middleName}`;
       const fileName = `${Date.now()}-${fullName}.svg`;
       const filePath = path.join(__dirname, 'uploads', 'avatars', fileName);
-      const avatarPath = `uploads/avatars/${fileName}`;
+      const avatarPath = `/uploads/avatars/${fileName}`;
+      data.user.avatarPath = avatarPath;
       const options = {
         tableName: "users",
         data: data.user,
@@ -172,6 +173,226 @@ export const UserModel = {
       return { type: "result", result: tokens };
     } catch (error) {
       return { type: "errorMsg", errorMsg: "Error in Model updateTokens" };
+    }
+  },
+  // Получение статистики пользователя
+  getUserStats: async (userId) => {
+    try {
+      // Получаем задачи пользователя
+      const tasksResult = await pool.query(`
+        WITH user_tasks AS (
+          SELECT t.* 
+          FROM tasks t
+          LEFT JOIN task_assignments ta ON t.task_id = ta.task_id
+          WHERE t.author_id = $1 OR ta.user_id = $1
+        )
+        SELECT 
+          COUNT(*) as total_tasks,
+          COUNT(CASE WHEN status = 'Выполнено' THEN 1 END) as completed_tasks,
+          COUNT(CASE WHEN status = 'В работе' THEN 1 END) as in_progress_tasks,
+          COUNT(CASE WHEN is_urgent = true THEN 1 END) as urgent_tasks,
+          COUNT(CASE WHEN end_date < CURRENT_DATE AND status != 'Выполнено' THEN 1 END) as overdue_tasks
+        FROM user_tasks
+      `, [userId]);
+
+      // Получаем проекты пользователя
+      const projectsResult = await pool.query(`
+        SELECT 
+          COUNT(*) as total_projects,
+          COUNT(CASE WHEN status = 'Завершен' THEN 1 END) as completed_projects,
+          COUNT(CASE WHEN status = 'В работе' THEN 1 END) as in_progress_projects,
+          COUNT(CASE WHEN is_urgent = true THEN 1 END) as urgent_projects,
+          COUNT(CASE WHEN end_date < CURRENT_DATE AND status != 'Завершен' THEN 1 END) as overdue_projects
+        FROM projects 
+        WHERE author_id = $1 OR $1 = ANY(member_ids)
+      `, [userId]);
+
+      // Получаем цели пользователя
+      const goalsResult = await pool.query(`
+        SELECT 
+          COUNT(*) as total_goals,
+          COUNT(CASE WHEN goal_status = 'Достигнута' THEN 1 END) as completed_goals,
+          COUNT(CASE WHEN goal_status = 'В работе' THEN 1 END) as in_progress_goals,
+          COUNT(CASE WHEN end_date < CURRENT_DATE AND goal_status != 'Достигнута' THEN 1 END) as overdue_goals
+        FROM goals 
+        WHERE author_id = $1 OR $1 = ANY(member_ids)
+      `, [userId]);
+
+      // Получаем активность пользователя
+      const activityResult = await pool.query(`
+        WITH user_activities AS (
+          SELECT created_at FROM tasks WHERE author_id = $1
+          UNION ALL
+          SELECT created_at FROM task_assignments ta 
+          JOIN tasks t ON ta.task_id = t.task_id 
+          WHERE ta.user_id = $1
+          UNION ALL
+          SELECT created_at FROM projects WHERE author_id = $1 OR $1 = ANY(member_ids)
+          UNION ALL
+          SELECT created_at FROM goals WHERE author_id = $1 OR $1 = ANY(member_ids)
+        )
+        SELECT 
+          COUNT(DISTINCT DATE(created_at)) as active_days,
+          MAX(created_at) as last_activity
+        FROM user_activities
+        WHERE created_at >= CURRENT_DATE - INTERVAL '30 days'
+      `, [userId]);
+
+      // Получаем распределение задач по приоритетам
+      const priorityResult = await pool.query(`
+        WITH user_tasks AS (
+          SELECT t.* 
+          FROM tasks t
+          LEFT JOIN task_assignments ta ON t.task_id = ta.task_id
+          WHERE t.author_id = $1 OR ta.user_id = $1
+        )
+        SELECT 
+          priority,
+          COUNT(*) as count
+        FROM user_tasks
+        WHERE status != 'Выполнено'
+        GROUP BY priority
+        ORDER BY count DESC
+      `, [userId]);
+
+      // Получаем распределение задач по статусам
+      const statusResult = await pool.query(`
+        WITH user_tasks AS (
+          SELECT t.* 
+          FROM tasks t
+          LEFT JOIN task_assignments ta ON t.task_id = ta.task_id
+          WHERE t.author_id = $1 OR ta.user_id = $1
+        )
+        SELECT 
+          status,
+          COUNT(*) as count
+        FROM user_tasks
+        GROUP BY status
+        ORDER BY count DESC
+      `, [userId]);
+
+      return {
+        type: "result",
+        result: {
+          tasks: {
+            ...tasksResult.rows[0],
+            by_priority: priorityResult.rows,
+            by_status: statusResult.rows
+          },
+          projects: projectsResult.rows[0],
+          goals: goalsResult.rows[0],
+          activity: activityResult.rows[0]
+        }
+      };
+    } catch (error) {
+      console.error('Error in getUserStats:', error);
+      return { type: "errorMsg", errorMsg: "Error getting user statistics" };
+    }
+  },
+
+  // Получение последних активностей пользователя
+  getUserRecentActivity: async (userId, limit = 10) => {
+    try {
+      const result = await pool.query(`
+        WITH user_tasks AS (
+          SELECT t.* 
+          FROM tasks t
+          LEFT JOIN task_assignments ta ON t.task_id = ta.task_id
+          WHERE t.author_id = $1 OR ta.user_id = $1
+        )
+        SELECT 
+          'task' as type,
+          task_id as id,
+          task_name as name,
+          status,
+          created_at,
+          updated_at
+        FROM user_tasks
+        
+        UNION ALL
+        
+        SELECT 
+          'project' as type,
+          project_id as id,
+          project_name as name,
+          status,
+          created_at,
+          updated_at
+        FROM projects 
+        WHERE author_id = $1 OR $1 = ANY(member_ids)
+        
+        UNION ALL
+        
+        SELECT 
+          'goal' as type,
+          goal_id as id,
+          goal_name as name,
+          goal_status as status,
+          created_at,
+          updated_at
+        FROM goals 
+        WHERE author_id = $1 OR $1 = ANY(member_ids)
+        
+        ORDER BY updated_at DESC
+        LIMIT $2
+      `, [userId, limit]);
+
+      return { type: "result", result: result.rows };
+    } catch (error) {
+      console.error('Error in getUserRecentActivity:', error);
+      return { type: "errorMsg", errorMsg: "Error getting user recent activity" };
+    }
+  },
+
+  // Получение эффективности пользователя
+  getUserPerformance: async (userId, days = 30) => {
+    try {
+      const result = await pool.query(`
+        WITH date_range AS (
+          SELECT generate_series(
+            CURRENT_DATE - ($2 || ' days')::interval,
+            CURRENT_DATE,
+            '1 day'::interval
+          )::date as date
+        ),
+        user_activities AS (
+          SELECT created_at, status FROM tasks WHERE author_id = $1
+          UNION ALL
+          SELECT t.created_at, t.status 
+          FROM task_assignments ta 
+          JOIN tasks t ON ta.task_id = t.task_id 
+          WHERE ta.user_id = $1
+          UNION ALL
+          SELECT created_at, status FROM projects 
+          WHERE author_id = $1 OR $1 = ANY(member_ids)
+          UNION ALL
+          SELECT created_at, goal_status as status FROM goals 
+          WHERE author_id = $1 OR $1 = ANY(member_ids)
+        ),
+        daily_stats AS (
+          SELECT 
+            DATE(created_at) as date,
+            COUNT(*) as created_count,
+            COUNT(CASE 
+              WHEN status IN ('Выполнено', 'Завершен', 'Достигнута') 
+              THEN 1 
+            END) as completed_count
+          FROM user_activities
+          GROUP BY DATE(created_at)
+        )
+        SELECT 
+          dr.date,
+          COALESCE(ds.created_count, 0) as created_count,
+          COALESCE(ds.completed_count, 0) as completed_count
+        FROM date_range dr
+        LEFT JOIN daily_stats ds ON dr.date = ds.date
+        ORDER BY dr.date
+      `, [userId, days]);
+
+      return { type: "result", result: result.rows };
+    } catch (error) {
+      console.error('Error in getUserPerformance:', error);
+      return { type: "errorMsg", errorMsg: "Error getting user performance" };
     }
   }
 }

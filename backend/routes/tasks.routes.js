@@ -1,5 +1,5 @@
-import { TasksController } from "../controllers/tasks.controller.js";
-import { authenticateToken, verifyRefreshToken } from "../middleware/authentication.js";
+import { TasksController } from "#controllers/tasks.controller.js";
+import { authenticateToken, verifyRefreshToken } from "#root/middleware/authentication.js";
 
 export const TasksRoutes = (fastify, options, done) => {
   fastify.get("/tasks/:userId/list", TasksController.GetTasksByUserId);
