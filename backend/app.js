@@ -6,7 +6,6 @@ import fastifyMultipart from '@fastify/multipart';
 import fastifyStatic from '@fastify/static';
 import { __dirname } from '#root/utils/dirname.js';
 import { webSocketService } from '#root/service/websocket.js';
-import { RabbitMQ_Config } from '#rmq/rabbitmq_config.js';
 import { pushConsumer } from '#rmq/consumers/pushConsumer.js';
 import { createResources } from '#rmq/resourceCreator.js';
 
