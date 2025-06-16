@@ -1,18 +1,18 @@
-import { NotificationsModel } from "../models/notifications.models.js";
-import { errorReplyCodes, replyResult } from "../service/duplicatePartsCode.js";
+import { NotificationsModel } from "#models/notifications.models.js";
+import { errorReplyCodes, replyResult } from "#root/service/duplicatePartsCode.js";
 
 export const NotificationsController = {
   RegisterTokens: async (req, rep) => {
     try {
-      const { userId, deviceToken, deviceType, pushToken } = req.body;
+      const { userId, deviceToken, deviceType } = req.body;
       const id = req.user.userId;
-      if (!deviceToken || !deviceType || !pushToken) {
+      if (!deviceToken || !deviceType) {
         return errorReplyCodes.reply400("MISSING_REQUIRED_FIELD");
       }
       if (id !== userId) {
         return errorReplyCodes.reply403("DEFAULT", `There is no access for user ${userId}`);
       }
-      const result = await NotificationsModel.registerTokens(userId, deviceToken, deviceType, pushToken);
+      const result = await NotificationsModel.registerTokens(userId, deviceToken, deviceType);
       return replyResult(result);
     } catch (error) {
       console.error("Error at register tokens (device, push)", error);
@@ -30,6 +30,20 @@ export const NotificationsController = {
       return replyResult(result);
     } catch (error) {
       console.error("Error at get settings notifications", error);
+      return errorReplyCodes.reply500("DEFAULT");
+    }
+  },
+  GetInAppNotifications: async (req, rep) => {
+    try {
+      const { userId } = req.params;
+      const id = req.user.userId;
+      if (id !== userId) {
+        return errorReplyCodes.reply403("DEFAULT", `There is no access for user ${userId}`);
+      }
+      const result = await NotificationsModel.getInAppNotifications(userId);
+      return replyResult(result);
+    } catch (error) {
+      console.error("Error at get in_app notifications", error);
       return errorReplyCodes.reply500("DEFAULT");
     }
   },
