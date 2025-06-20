@@ -2,6 +2,8 @@ import { View, Text, StyleSheet, TextInput, TouchableOpacity, Image, KeyboardAvo
 import React, { useState } from 'react';
 import { Images, MainColors, TextColors } from '@/constants';
 import { router } from 'expo-router';
+import { HeaderEditor } from '@src/components/HeaderEditor';
+import { EvilIcons } from '@expo/vector-icons';
 
 type registerInfoType = {
   firstName: string,
@@ -33,6 +35,10 @@ export const RegisterScreen = () => {
     setRegisterInfo(prevState => ({ ...prevState, [keyName]: value }))
   }
 
+  const handleBack = async () => {
+    router.push('/(auth)/login')
+  }
+
   const handleRegister = async () => {
     if (registerInfo.password !== registerInfo.confirmPassword) {
       return;
@@ -45,15 +51,18 @@ export const RegisterScreen = () => {
       behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
       style={styles.container}
     >
+      <View style={styles.header}>
+        <View style={styles.headerButton}>
+          <TouchableOpacity onPress={handleBack}>
+            <EvilIcons name="close" size={40} color={TextColors.snowbank} />
+          </TouchableOpacity>
+          <Text style={styles.headerTitle}>Регистрация</Text>
+        </View>
+      </View>
       <ScrollView contentContainerStyle={styles.scrollContent}>
-        <TouchableOpacity
-          style={styles.backToLogin}
-          onPress={() => router.push("/(auth)/login")}
-        >
-          <Image source={Images.back_button} />
-        </TouchableOpacity>
         <View style={styles.content}>
           <Image source={Images.logo} style={styles.logo} />
+          <Text style={styles.title}>SmartTasker</Text>
           <View style={styles.form}>
             <TextInput
               style={styles.input}
@@ -118,6 +127,30 @@ export const RegisterScreen = () => {
 };
 
 const styles = StyleSheet.create({
+  header: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingHorizontal: 16,
+    paddingTop: 30,
+    paddingBottom: 10,
+    borderBottomWidth: 1,
+    borderBottomColor: TextColors.snowbank,
+  },
+  headerButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  headerTitle: {
+    fontSize: 20,
+    fontFamily: 'Century-Regular',
+    color: TextColors.snowbank,
+    marginLeft: 10,
+  },
+  headerActions: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
   backToLogin: {
     marginTop: 15,
     marginLeft: 15
@@ -156,6 +189,7 @@ const styles = StyleSheet.create({
     borderRadius: 10,
     padding: 15,
     fontSize: 16,
+    fontFamily: 'Century-Regular',
     width: '100%',
   },
   registerButton: {
@@ -166,8 +200,9 @@ const styles = StyleSheet.create({
     marginTop: 10,
   },
   registerButtonText: {
-    color: TextColors.snowbank,
+    color: TextColors.dim_gray,
     fontSize: 18,
     fontWeight: '600',
+    fontFamily: 'Century-Regular'
   }
 });

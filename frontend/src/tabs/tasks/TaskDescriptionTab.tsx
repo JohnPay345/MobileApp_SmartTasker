@@ -1,6 +1,6 @@
 import { ScrollView, StyleSheet } from "react-native";
 
-export const TasksDescriptionTab = () => {
+export const TaskDescriptionTab = () => {
   return (
     <ScrollView style={styles.tabContent}>
       {/* Здесь будут задачи проекта */}

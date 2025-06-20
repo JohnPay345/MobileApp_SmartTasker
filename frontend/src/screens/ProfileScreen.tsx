@@ -4,6 +4,8 @@ import { useRouter } from 'expo-router';
 import { EvilIcons, Ionicons, MaterialIcons, AntDesign } from '@expo/vector-icons';
 import { MainColors, TextColors, BASE_URL } from '@/constants';
 import { Agenda, Calendar, LocaleConfig } from 'react-native-calendars';
+import { Button } from '@react-navigation/elements';
+import { HeaderEditor } from '@src/components/HeaderEditor';
 
 interface ProfileData {
   firstName: string;
@@ -171,17 +173,11 @@ export const ProfileScreen = () => {
 
   return (
     <View style={styles.container}>
-      <View style={styles.header}>
-        <View style={styles.headerButton}>
-          <TouchableOpacity onPress={handleBack}>
-            <EvilIcons name="close" size={40} color={TextColors.dim_gray} />
-          </TouchableOpacity>
-          <Text style={styles.headerTitle}>Профиль</Text>
-        </View>
-        <TouchableOpacity onPress={handleSave} style={styles.headerButton}>
-          <Ionicons name="checkmark" size={35} color={MainColors.pool_water} />
-        </TouchableOpacity>
-      </View>
+      <HeaderEditor
+        title={'Профиль'}
+        onBack={handleBack}
+        onSave={handleSave}
+      />
 
       <ScrollView
         style={styles.scrollView}
@@ -524,9 +520,11 @@ const styles = StyleSheet.create({
     padding: 12,
   },
   changePasswordButton: {
+    width: 150,
     marginBottom: 16,
   },
   changePasswordText: {
+    textAlign: 'center',
     color: MainColors.pool_water,
     fontSize: 14,
     fontFamily: 'Century-Regular',

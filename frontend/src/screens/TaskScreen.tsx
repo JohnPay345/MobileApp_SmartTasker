@@ -1,17 +1,13 @@
-import { View, Text, TouchableOpacity, StyleSheet, TextInput, ScrollView } from 'react-native';
+import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
 import React, { useState } from 'react';
-import { EvilIcons, Ionicons, Octicons } from '@expo/vector-icons';
-import { GetTaskStatusColor, MainColors, TextColors } from '@/constants';
+import { EvilIcons, Ionicons } from '@expo/vector-icons';
+import { MainColors, TextColors } from '@/constants';
 import { router } from 'expo-router';
-import { Picker } from '@react-native-picker/picker';
-import { TaskStatus } from '@src/types/statuses';
-import { ModalItem } from '@src/components/ModalItem';
+import { Tab, TabsComponent } from '@/src/components/TabsComponent';
+import { TaskInfoTab } from '@/src/tabs/tasks/TaskInfoTab';
+import { TaskDescriptionTab } from '@/src/tabs/tasks/TaskDescriptionTab';
 
 type TaskMode = 'create' | 'view' | 'edit';
-
-const STATUSES: TaskStatus[] = ['Черновик', 'В работе', 'Сдана', 'Выполнена', 'Неактуально', 'Провален'];
-const PRIORITIES = ['1 - Низкий', '2 - Средний', '3 - Высокий'];
-const VALUES = ['1 - Низкая', '2 - Средняя', '3 - Высокая'];
 
 interface TaskScreenProps {
   taskId?: string;
@@ -19,21 +15,6 @@ interface TaskScreenProps {
 
 export const TaskScreen: React.FC<TaskScreenProps> = ({ taskId }) => {
   const [mode, setMode] = useState<TaskMode>(taskId ? 'view' : 'create');
-  const isEditable = mode === 'create' || mode === 'edit';
-  const [isStatusPickerVisible, setIsStatusPickerVisible] = useState(false);
-  const [taskData, setTaskData] = useState({
-    title: '',
-    description: '',
-    author: 'Вы, Винокурин Геннадий Павлович',
-    deadline: '01.01.2000, 09:30',
-    status: 'В работе' as TaskStatus,
-    priority: '3 - Высокий',
-    value: '3 - Высокий',
-    effort: '3 - Высокий',
-    skills: 'Администрирование ОС; Сетевые технологии; Облач...',
-    assignees: 'Иванов И.И.; Горький С.Я.;',
-    urgent: false,
-  });
 
   const handleBack = () => {
     router.back();
@@ -44,55 +25,9 @@ export const TaskScreen: React.FC<TaskScreenProps> = ({ taskId }) => {
     router.back();
   };
 
-  const handleDelete = () => {
-    // TODO: Удаление задачи
-    router.back();
-  };
-
   const handleEdit = () => {
     setMode('edit');
   };
-
-  const renderPicker = (value: string, items: string[], onValueChange: (value: string) => void) => (
-    <View style={styles.pickerContainer}>
-      <Picker
-        selectedValue={value}
-        onValueChange={onValueChange}
-        enabled={isEditable}
-        style={styles.picker}
-      >
-        {items.map((item) => (
-          <Picker.Item key={item} label={item} value={item} />
-        ))}
-      </Picker>
-    </View>
-  );
-
-  const showPicker = <T extends string>(value: T, items: T[], onValueChange: (value: T) => void) => {
-    return (
-      <View style={styles.pickerContainer}>
-        <Picker selectedValue={value} onValueChange={onValueChange} enabled={isEditable} style={styles.picker}>
-          {items.map((item) => (
-            <Picker.Item key={item} label={item} value={item} />
-          ))}
-        </Picker>
-      </View>
-    );
-  };
-
-  const getStatusTextColor = (status: TaskStatus): string => {
-    if (status === 'Выполнена'
-      || status === 'В работе'
-    ) {
-      return TextColors.dire_wolf;
-    }
-    return TextColors.snowbank;
-  }
-
-  const getStatusColor = (status: TaskStatus): string => {
-    const color = GetTaskStatusColor[status] ? GetTaskStatusColor[status] : TextColors.dim_gray;
-    return color;
-  }
 
   return (
     <View style={styles.container}>
@@ -109,181 +44,21 @@ export const TaskScreen: React.FC<TaskScreenProps> = ({ taskId }) => {
           </TouchableOpacity>
         </View>
       </View>
-
-      <ScrollView style={styles.content}>
-        <View style={styles.section}>
-          <Text style={styles.label}>Название задачи</Text>
-          <TextInput
-            style={styles.input}
-            placeholder="До 200 символов"
-            value={taskData.title}
-            onChangeText={(text) => setTaskData({ ...taskData, title: text })}
-            editable={isEditable}
-            maxLength={200}
-          />
-          <TextInput
-            style={[styles.input, styles.multilineInput]}
-            multiline
-            placeholder="Описание задачи"
-            value={taskData.description}
-            onChangeText={(text) => setTaskData({ ...taskData, description: text })}
-            editable={isEditable}
-          />
-        </View>
-
-        <View style={styles.section}>
-          <Text style={styles.label}>Автор</Text>
-          <View style={styles.infoField}>
-            <Text style={styles.infoText}>{taskData.author}</Text>
-          </View>
-        </View>
-
-        <View style={styles.row}>
-          <View style={[styles.section, styles.flex1]}>
-            <Text style={[styles.label, { textAlign: 'center' }]}>Дедлайн</Text>
-            <View style={[styles.infoField, { borderRadius: 0, backgroundColor: 'transparent' }]}>
-              <Text style={[styles.infoText, { fontSize: 12 }]}>{taskData.deadline}</Text>
-            </View>
-          </View>
-
-          <View style={[styles.section, styles.flex1]}>
-            <Text style={[styles.label, { textAlign: 'center' }]}>Статус задачи</Text>
-            <TouchableOpacity
-              style={[styles.statusBadge, {
-                backgroundColor: getStatusColor(taskData.status)
-              }]}
-              onPress={() => { setIsStatusPickerVisible(true) }}
-            >
-              <Text style={[styles.statusText, { color: getStatusTextColor(taskData.status) }]}>
-                {taskData.status}
-              </Text>
-            </TouchableOpacity>
-          </View>
-
-          <View style={[styles.section, styles.flex1]}>
-            <Text style={[styles.label, { textAlign: 'center' }]}>{taskData.urgent ? 'Срочно' : 'Не срочно'}</Text>
-            <View style={[styles.urgencyIcon, { alignItems: 'center' }]}>
-              <Octicons name="stop" size={35} color={taskData.urgent ? TextColors.ottoman_red : TextColors.dim_gray} />
-            </View>
-          </View>
-        </View>
-
-        <View style={styles.row}>
-          <View style={[styles.section, styles.flex1]}>
-            <Text style={[styles.label, { textAlign: 'center' }]}>Приоритет</Text>
-            {isEditable ? (
-              renderPicker(
-                taskData.priority,
-                PRIORITIES,
-                (value) => setTaskData({ ...taskData, priority: value })
-              )
-            ) : (
-              <View style={styles.infoField}>
-                <Text style={styles.infoText}>{taskData.priority}</Text>
-              </View>
-            )}
-          </View>
-
-          <View style={[styles.section, styles.flex1]}>
-            <Text style={[styles.label, { textAlign: 'center' }]}>Ценность</Text>
-            {isEditable ? (
-              renderPicker(
-                taskData.value,
-                VALUES,
-                (value) => setTaskData({ ...taskData, value: value })
-              )
-            ) : (
-              <View style={styles.infoField}>
-                <Text style={styles.infoText}>{taskData.value}</Text>
-              </View>
-            )}
-          </View>
-
-          <View style={[styles.section, styles.flex1]}>
-            <Text style={[styles.label, { textAlign: 'center' }]}>Усилия</Text>
-            {isEditable ? (
-              renderPicker(
-                taskData.effort,
-                VALUES,
-                (value) => setTaskData({ ...taskData, effort: value })
-              )
-            ) : (
-              <View style={styles.infoField}>
-                <Text style={styles.infoText}>{taskData.effort}</Text>
-              </View>
-            )}
-          </View>
-        </View>
-
-        <View style={styles.section}>
-          <Text style={styles.label}>Оценка срока</Text>
-          <View style={styles.timelineContainer}>
-            <View style={styles.timelineDot} />
-            <View style={styles.timelineDot} />
-            <View style={styles.timelineDot} />
-            <View style={styles.timelineDot} />
-            <View style={styles.timelineDot} />
-            <View style={styles.timelineLine} />
-          </View>
-          <View style={styles.timelineLabels}>
-            <Text style={styles.timelineLabel}>Пессимистичная</Text>
-            <Text style={styles.timelineLabel}>Оптимистичная</Text>
-            <Text style={styles.timelineLabel}>Ближайший срок</Text>
-            <Text style={styles.timelineLabel}>Средняя</Text>
-            <Text style={styles.timelineLabel}>Нежелательно</Text>
-          </View>
-        </View>
-
-        <View style={styles.section}>
-          <Text style={styles.label}>Необходимые навыки</Text>
-          <View style={styles.infoField}>
-            <Text style={styles.infoText}>{taskData.skills}</Text>
-          </View>
-        </View>
-
-        <TouchableOpacity style={styles.assignButton}>
-          <Text style={styles.assignButtonText}>Поручить задачу</Text>
-        </TouchableOpacity>
-
-        <View style={styles.section}>
-          <Text style={styles.label}>Поручена задача 2 исполнителям</Text>
-          <View style={styles.infoField}>
-            <Text style={styles.infoText}>{taskData.assignees}</Text>
-          </View>
-        </View>
-
-        <View style={styles.section}>
-          <Text style={styles.label}>Проекты</Text>
-          <TouchableOpacity style={styles.addProjectButton}>
-            <Text style={styles.addProjectButtonText}>Добавить</Text>
-          </TouchableOpacity>
-          <View style={styles.noProjectsContainer}>
-            <Text style={styles.noProjectsText}>Нет проектов</Text>
-          </View>
-        </View>
-
-        {mode !== 'create' && (
-          <TouchableOpacity style={styles.deleteButton} onPress={handleDelete}>
-            <Text style={styles.deleteButtonText}>Удалить</Text>
-          </TouchableOpacity>
-        )}
-
-        {/* Все модальные окна */}
-        <ModalItem
-          isVisible={isStatusPickerVisible}
-          onClose={() => { setIsStatusPickerVisible(false) }}
+      <TabsComponent
+        activeTab={0}
+        onTabChange={(index) => { }}
+      >
+        <Tab
+          label="Свойства"
         >
-          {STATUSES.map((status) => (
-            <TouchableOpacity
-              key={status}
-              onPress={() => { setTaskData({ ...taskData, status }); setIsStatusPickerVisible(false) }}
-              style={[styles.modalItem, { backgroundColor: getStatusColor(status) }]}
-            >
-              <Text style={{ color: getStatusTextColor(status), fontFamily: 'Century-Regular' }}>{status}</Text>
-            </TouchableOpacity>
-          ))}
-        </ModalItem>
-      </ScrollView>
+          <TaskInfoTab mode={mode} />
+        </Tab>
+        <Tab
+          label="Описание"
+        >
+          <TaskDescriptionTab />
+        </Tab>
+      </TabsComponent>
     </View>
   );
 };
@@ -332,7 +107,7 @@ const styles = StyleSheet.create({
   },
   input: {
     fontSize: 16,
-    color: TextColors.beer,
+    color: TextColors.lunar_base,
     fontFamily: 'Century-Regular',
   },
   multilineInput: {
@@ -411,7 +186,7 @@ const styles = StyleSheet.create({
     fontFamily: 'Century-Regular',
   },
   assignButton: {
-    width: 100,
+    width: 180,
     backgroundColor: MainColors.herbery_honey,
     padding: 12,
     borderRadius: 4,
@@ -448,6 +223,7 @@ const styles = StyleSheet.create({
     fontFamily: 'Century-Regular',
   },
   deleteButton: {
+    width: 150,
     padding: 12,
     borderRadius: 4,
     alignItems: 'center',

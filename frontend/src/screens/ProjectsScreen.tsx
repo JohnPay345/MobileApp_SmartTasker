@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import {
   View,
   Text,
@@ -13,6 +13,7 @@ import { MainColors, TextColors } from '@/constants';
 import { ProjectItem } from '@src/components/ProjectItem';
 import { BurgerMenu } from '@src/components/BurgerMenu';
 import { router } from 'expo-router';
+import { useProjects } from '@src/context/ProjectsContext';
 
 type ProjectStatus = 'В работе' | 'Выполнена' | 'Сдана' | 'Провален' | 'Неактуально' | 'Приостановлен' | 'Черновик';
 
@@ -26,65 +27,29 @@ interface Project {
 }
 
 export const ProjectsScreen = () => {
-  const [isLoading, setIsLoading] = useState(true);
+  const { projects } = useProjects();
   const [searchQuery, setSearchQuery] = useState('');
-  const [projects, setProjects] = useState<Project[]>([]);
   const [isMenuOpen, setIsMenuOpen] = useState(false);
 
-  useEffect(() => {
-    loadProjects();
-  }, []);
+  const filteredProjects = projects.filter(project =>
+    project.project_name.toLowerCase().includes(searchQuery.toLowerCase())
+  );
 
-  const loadProjects = async () => {
-    // TODO: Заменить на запрос к API
-    try {
-      await new Promise(resolve => setTimeout(resolve, 1500));
-      setProjects([
-        {
-          id: 1,
-          title: 'Разработка мобильного приложения',
-          tasksCount: 12,
-          completedTasks: 5,
-          deadline: '01.03.2024',
-          status: 'В работе'
-        },
-        {
-          id: 2,
-          title: 'Редизайн веб-сайта',
-          tasksCount: 8,
-          completedTasks: 8,
-          deadline: '15.03.2024',
-          status: 'Выполнена'
-        },
-        {
-          id: 3,
-          title: 'Интеграция платежной системы',
-          tasksCount: 6,
-          completedTasks: 2,
-          deadline: '10.02.2024',
-          status: 'Провален'
-        },
-        {
-          id: 4,
-          title: 'Обновление документации',
-          tasksCount: 4,
-          completedTasks: 1,
-          deadline: '20.03.2024',
-          status: 'Неактуально'
-        },
-      ]);
-    } catch (error) {
-      console.error('Ошибка загрузки проектов:', error);
-    } finally {
-      setIsLoading(false);
-    }
-  };
+  // MOCK задачи для примера прогресса
+  const mockTasks = [
+    { task_id: 't1', project_id: '1', status: 'Выполнена' },
+    { task_id: 't2', project_id: '1', status: 'В работе' },
+    { task_id: 't3', project_id: '1', status: 'Выполнена' },
+    { task_id: 't4', project_id: '2', status: 'Выполнена' },
+    { task_id: 't5', project_id: '2', status: 'Выполнена' },
+    { task_id: 't6', project_id: '2', status: 'В работе' },
+  ];
 
   return (
     <View style={styles.container}>
       <View style={styles.header}>
         <Text style={styles.headerTitle}>Проекты</Text>
-        <TouchableOpacity>
+        <TouchableOpacity onPress={() => router.push("/inbox")}>
           <Ionicons name="notifications-outline" size={30} color={MainColors.pool_water} />
         </TouchableOpacity>
       </View>
@@ -104,24 +69,29 @@ export const ProjectsScreen = () => {
         </TouchableOpacity>
       </View>
 
-      {isLoading ? (
+      {projects.length === 0 ? (
         <View style={styles.loadingContainer}>
           <ActivityIndicator size="large" color={MainColors.pool_water} />
           <Text style={styles.loadingText}>Загрузка проектов...</Text>
         </View>
       ) : (
         <ScrollView style={styles.content}>
-          {projects.map(project => (
-            <ProjectItem
-              key={project.id}
-              title={project.title}
-              tasksCount={project.tasksCount}
-              completedTasks={project.completedTasks}
-              deadline={project.deadline}
-              status={project.status}
-              onPress={() => { router.push(`/projects/${project.id}`) }}
-            />
-          ))}
+          {filteredProjects.map(project => {
+            const projectTasks = mockTasks.filter(t => t.project_id === project.project_id);
+            const tasksCount = projectTasks.length;
+            const completedTasks = projectTasks.filter(t => t.status === 'Выполнена').length;
+            return (
+              <ProjectItem
+                key={project.project_id}
+                title={project.project_name}
+                tasksCount={tasksCount}
+                completedTasks={completedTasks}
+                deadline={project.end_date.toLocaleDateString()}
+                status={project.status}
+                onPress={() => { router.push(`/(projects)/${project.project_id}`) }}
+              />
+            );
+          })}
         </ScrollView>
       )}
 
@@ -134,7 +104,7 @@ export const ProjectsScreen = () => {
         </TouchableOpacity>
         <TouchableOpacity
           style={styles.addButton}
-          onPress={() => {/* Add new project */ }}
+          onPress={() => { router.push('/(projects)/create'); }}
         >
           <Ionicons name="add" size={35} color={MainColors.pool_water} />
         </TouchableOpacity>

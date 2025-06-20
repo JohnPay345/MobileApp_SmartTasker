@@ -71,7 +71,7 @@ export const TasksScreen = () => {
     <View style={styles.container}>
       <View style={styles.header}>
         <Text style={styles.headerTitle}>Задачи</Text>
-        <TouchableOpacity>
+        <TouchableOpacity onPress={() => router.push("/inbox")}>
           <Ionicons name="notifications-outline" size={30} color={TextColors.pool_water} />
         </TouchableOpacity>
       </View>

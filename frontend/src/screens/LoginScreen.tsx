@@ -3,19 +3,24 @@ import React, { useState } from 'react';
 import { Images, MainColors, TextColors } from '@/constants';
 import { RelativePathString, router } from 'expo-router';
 import { useSettings } from '@src/context/SettingsContext';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import { useLogin } from '@src/api/users';
 
 export const LoginScreen = () => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const { defaultScreen } = useSettings();
+  const login = useLogin();
 
-  const handleLogin = () => {
+  const handleLogin = async () => {
     // TODO: Добавить логику авторизации
-    router.replace(defaultScreen as RelativePathString || '/tasks');
+    // const response = await login.mutateAsync({ email, password });
+    // AsyncStorage.setItem('user_data', JSON.stringify(response));
+    router.push(defaultScreen as RelativePathString || '/tasks');
   };
 
   const handleRegister = () => {
-    router.replace('/(auth)/register');
+    router.push('/(auth)/register');
   }
 
   return (

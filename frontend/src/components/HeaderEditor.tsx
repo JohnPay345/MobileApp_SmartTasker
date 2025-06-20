@@ -3,24 +3,27 @@ import { EvilIcons, Ionicons } from '@expo/vector-icons';
 import { TextColors, MainColors } from '@/constants';
 
 interface HeaderEditorProps {
+  title?: string;
   onBack: () => void;
-  onSave: () => void;
+  onSave?: (data: any) => void;
 }
 
-export const HeaderEditor = ({ onBack, onSave }: HeaderEditorProps) => {
+export const HeaderEditor = ({ title, onBack, onSave }: HeaderEditorProps) => {
   return (
     <View style={styles.header}>
       <View style={styles.headerButton}>
         <TouchableOpacity onPress={onBack}>
           <EvilIcons name="close" size={40} color={TextColors.dim_gray} />
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>Проекты</Text>
+        <Text style={styles.headerTitle}>{title}</Text>
       </View>
-      <View style={styles.headerActions}>
-        <TouchableOpacity onPress={onSave}>
-          <Ionicons name="checkmark" size={35} color={MainColors.pool_water} />
-        </TouchableOpacity>
-      </View>
+      {onSave ? (
+        <View style={styles.headerActions}>
+          <TouchableOpacity onPress={onSave}>
+            <Ionicons name="checkmark" size={35} color={MainColors.pool_water} />
+          </TouchableOpacity>
+        </View>
+      ) : null}
     </View>
   )
 }

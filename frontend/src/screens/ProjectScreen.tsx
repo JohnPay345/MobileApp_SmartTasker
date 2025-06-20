@@ -1,82 +1,113 @@
-import { View, StyleSheet } from 'react-native';
-import React, { useState } from 'react';
-import { GetTaskStatusColor, MainColors, TextColors } from '@/constants';
-import { router } from 'expo-router';
-import { TaskStatus } from '@src/types/statuses';
+import { View, StyleSheet, ActivityIndicator, Text, Alert } from 'react-native';
+import React, { useEffect, useState } from 'react';
+import { MainColors, TextColors } from '@/constants';
+import { router, useLocalSearchParams } from 'expo-router';
 import { HeaderEditor } from '@src/components/HeaderEditor';
 import { Ionicons } from '@expo/vector-icons';
 import { ProjectInfoTab } from '@src/tabs/projects/ProjectInfoTab';
 import { ProjectTasksTab } from '@src/tabs/projects/ProjectTasksTab';
 import { ProjectGoalsTab } from '@src/tabs/projects/ProjectGoalsTab';
 import { TabsComponent, Tab } from '@src/components/TabsComponent';
+import { useProject, useUpdateProject, useDeleteProject, Project } from '@src/api/projects';
+import { useTasks } from '@src/api/tasks';
+import { useForm } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
+import { projectSchema, type ProjectFormData } from '@src/schemas/project.schema';
+import { ProjectStatus } from '@src/types/statuses';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import { useProjects } from '@src/context/ProjectsContext';
 
 type ProjectMode = 'create' | 'view' | 'edit';
 
-interface ProjectScreenProps {
-  projectId?: string;
-}
+export const ProjectScreen = () => {
+  const { project_id } = useLocalSearchParams<{ project_id: string }>();
+  const { projects, updateProject, addProject } = useProjects();
+  const isCreateMode = !project_id;
+  const project = projects.find(p => p.project_id === project_id);
+  const isEditable = true;
 
-export const ProjectScreen: React.FC<ProjectScreenProps> = ({ projectId }) => {
-  const [mode, setMode] = useState<ProjectMode>(projectId ? 'view' : 'create');
-  const isEditable = mode === 'create' || mode === 'edit';
+  const { handleSubmit, formState: { errors }, setValue, watch } = useForm<ProjectFormData>({
+    resolver: zodResolver(projectSchema),
+    defaultValues: project && !isCreateMode ? {
+      project_name: project.project_name,
+      description: project.project_description || '',
+      status: project.status as ProjectStatus,
+      start_date: project.start_date,
+      end_date: project.end_date,
+      author_id: project.author_id,
+      tags: project.tags || [],
+    } : {
+      project_name: '',
+      description: '',
+      status: 'В работе',
+      start_date: new Date(),
+      end_date: new Date(),
+      author_id: '',
+      tags: [],
+    }
+  });
 
   const handleBack = () => {
     router.back();
   };
 
-  const handleSave = () => {
-    // TODO: Сохранение задачи
-    router.back();
-  };
-
-  const handleDelete = () => {
-    // TODO: Удаление задачи
-    router.back();
-  };
-
-  const handleEdit = () => {
-    setMode('edit');
-  };
-
-  const getStatusTextColor = (status: TaskStatus): string => {
-    if (status === 'Выполнена' || status === 'В работе') {
-      return TextColors.dire_wolf;
+  const handleSave = (data: ProjectFormData) => {
+    if (isCreateMode) {
+      addProject({
+        ...data,
+        project_description: data.description,
+        tags: data.tags || [],
+        project_goal_id: '',
+        goal_name: '',
+        goal_description: '',
+        target_date: new Date(),
+        goal_status: 'В работе',
+        project_assignment_id: '',
+        user_id: '',
+      });
+    } else if (project) {
+      updateProject({
+        ...project,
+        ...data,
+        project_description: data.description,
+        updated_at: new Date(),
+      });
     }
-    return TextColors.snowbank;
-  }
-
-  const getStatusColor = (status: TaskStatus): string => {
-    const color = GetTaskStatusColor[status] ? GetTaskStatusColor[status] : TextColors.dim_gray;
-    return color;
-  }
+    router.back();
+  };
 
   return (
     <View style={styles.container}>
-      <HeaderEditor onBack={handleBack} onSave={handleSave} />
-
+      <HeaderEditor
+        title={'Проекты'}
+        onBack={handleBack}
+        onSave={handleSave}
+      />
       <View style={styles.content}>
         <TabsComponent
           activeTab={0}
-          onTabChange={(index) => console.log('Tab changed:', index)}
+          onTabChange={(index) => { }}
         >
           <Tab
             label="Свойства"
-            icon={<Ionicons name="information-circle-outline" size={24} color={MainColors.pool_water} />}
           >
-            <ProjectInfoTab />
-          </Tab>
-          <Tab
-            label="Цели"
-            icon={<Ionicons name="flag-outline" size={24} color={MainColors.pool_water} />}
-          >
-            <ProjectGoalsTab />
+            <ProjectInfoTab
+              project={project}
+              isEditable={isEditable}
+              errors={errors}
+              setValue={setValue}
+              watch={watch}
+            />
           </Tab>
           <Tab
             label="Задачи"
-            icon={<Ionicons name="list-outline" size={24} color={MainColors.pool_water} />}
-            badge={3}
           >
-            <ProjectTasksTab />
+            <ProjectTasksTab projectId={project_id || ''} />
+          </Tab>
+          <Tab
+            label="Цели"
+          >
+            <ProjectGoalsTab projectId={project_id || ''} />
           </Tab>
         </TabsComponent>
       </View>
@@ -91,5 +122,10 @@ const styles = StyleSheet.create({
   },
   content: {
     flex: 1,
+  },
+  errorText: {
+    color: TextColors.ottoman_red,
+    fontSize: 16,
+    textAlign: 'center',
   },
 });

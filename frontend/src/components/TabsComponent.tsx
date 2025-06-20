@@ -1,15 +1,9 @@
 import React, { Children, isValidElement, ReactElement, useState } from 'react';
 import { StyleSheet, View, TouchableOpacity, Text, Platform } from 'react-native';
-import { MainColors } from '@/constants';
-import Animated, {
-  useAnimatedStyle,
-  withSpring,
-  withTiming,
-} from 'react-native-reanimated';
+import { MainColors, TextColors } from '@/constants';
 
 interface TabProps {
   label: string;
-  icon: React.ReactNode;
   badge?: number;
   children: React.ReactNode;
 }
@@ -25,28 +19,6 @@ interface TabsComponentProps {
   containerStyle?: any;
   tabBarStyle?: any;
 }
-
-const TabIcon: React.FC<{ focused: boolean; icon: React.ReactNode }> = ({ focused, icon }) => {
-  const animatedStyle = useAnimatedStyle(() => {
-    return {
-      transform: [
-        {
-          scale: withSpring(focused ? 1.2 : 1, {
-            damping: 10,
-            stiffness: 100,
-          }),
-        },
-      ],
-      opacity: withTiming(focused ? 1 : 0.5, { duration: 200 }),
-    };
-  });
-
-  return (
-    <Animated.View style={[styles.iconContainer, animatedStyle]}>
-      {icon}
-    </Animated.View>
-  );
-};
 
 export const TabsComponent: React.FC<TabsComponentProps> = ({
   children,
@@ -71,7 +43,7 @@ export const TabsComponent: React.FC<TabsComponentProps> = ({
       <View style={[styles.tabBar, tabBarStyle]}>
         {tabs.map((tab, index) => {
           const isFocused = activeIndex === index;
-          const { icon, label, badge } = tab.props;
+          const { label, badge } = tab.props;
 
           return (
             <TouchableOpacity
@@ -79,9 +51,9 @@ export const TabsComponent: React.FC<TabsComponentProps> = ({
               accessibilityRole="button"
               accessibilityState={isFocused ? { selected: true } : {}}
               onPress={() => handleTabPress(index)}
-              style={styles.tabButton}
+              style={[styles.tabButton, isFocused && styles.tabButtonActive]}
             >
-              <TabIcon focused={isFocused} icon={icon} />
+              <Text style={[styles.tabLabel, isFocused && styles.tabLabelActive]}>{label}</Text>
               {isFocused && <View style={styles.activeIndicator} />}
               {badge ? (
                 <View style={styles.badgeContainer}>
@@ -106,22 +78,26 @@ const styles = StyleSheet.create({
   tabBar: {
     flexDirection: 'row',
     backgroundColor: MainColors.white,
-    borderRadius: 32,
-    height: 64,
-    paddingHorizontal: 8,
+    height: 56,
     alignItems: 'center',
-    justifyContent: 'space-around',
-    marginHorizontal: 16,
-    marginBottom: 16,
+    justifyContent: 'space-between',
+    borderTopWidth: 1,
+    borderTopColor: MainColors.pool_water,
+    position: 'absolute',
+    left: 0,
+    right: 0,
+    bottom: 0,
+    zIndex: 10,
+    paddingHorizontal: 0,
+    marginHorizontal: 0,
+    borderRadius: 0,
+    marginBottom: 0,
     ...Platform.select({
       ios: {
         shadowColor: '#000',
-        shadowOffset: {
-          width: 0,
-          height: 4,
-        },
-        shadowOpacity: 0.1,
-        shadowRadius: 12,
+        shadowOffset: { width: 0, height: -2 },
+        shadowOpacity: 0.05,
+        shadowRadius: 8,
       },
       android: {
         elevation: 8,
@@ -132,25 +108,36 @@ const styles = StyleSheet.create({
     flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
-    height: 48,
-    position: 'relative',
+    height: 56,
+    borderBottomWidth: 2,
+    borderBottomColor: 'transparent',
   },
-  iconContainer: {
-    width: 48,
-    height: 48,
-    alignItems: 'center',
-    justifyContent: 'center',
+  tabButtonActive: {
+    backgroundColor: MainColors.pool_water,
+  },
+  tabLabel: {
+    fontSize: 16,
+    color: MainColors.pool_water,
+    fontFamily: 'Century-Regular',
+    fontWeight: '500',
+  },
+  tabLabelActive: {
+    color: TextColors.snowbank,
+    fontFamily: 'Century-Regular',
+    fontWeight: '700',
   },
   activeIndicator: {
     position: 'absolute',
     bottom: 0,
-    width: 4,
-    height: 4,
+    left: '25%',
+    right: '25%',
+    height: 3,
     borderRadius: 2,
     backgroundColor: MainColors.herbery_honey,
   },
   content: {
     flex: 1,
+    marginBottom: 56,
   },
   badgeContainer: {
     position: 'absolute',
@@ -167,6 +154,7 @@ const styles = StyleSheet.create({
   badgeText: {
     color: MainColors.white,
     fontSize: 12,
+    fontFamily: 'Century-Regular',
     fontWeight: '600',
   },
 }); 

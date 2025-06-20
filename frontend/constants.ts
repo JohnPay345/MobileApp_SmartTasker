@@ -43,8 +43,9 @@ export const MainColors = {
   "pool_water": "#2183f2",
   "snowbank": "#e9e9e9",
   "herbery_honey": "#f2eb21",
+  "pixel_white": "#dbdbdb",
+  "black": "#000000",
   "white": "#ffffff",
-  "pixel_white": "#dbdbdb"
 }
 
 export const TextColors = {

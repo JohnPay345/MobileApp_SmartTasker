@@ -19,10 +19,54 @@ type notificationType = {
 export const InboxScreen = () => {
   const [isShowModalNotification, setIsShowModalNotification] = useState<boolean>(false);
   const [notificationsData, setNotificationsData] = useState<notificationType[]>([]);
+  const [selectedNotification, setSelectedNotification] = useState<notificationType | null>(null);
 
   // Запрос уведомлений пользователя
   useEffect(() => {
-    const inAppNotifications = getInAppNotifications();
+    //const inAppNotifications = getInAppNotifications();
+    const tempNotifications = [
+      {
+        id: 1,
+        user_id: 23,
+        notification_type: 'task.test',
+        notification_title: 'Первое уведомление',
+        notification_body: 'Тело первого уведомления',
+        notification_data: '',
+        is_read: false,
+        created_at: new Date()
+      },
+      {
+        id: 2,
+        user_id: 23,
+        notification_type: 'task.test',
+        notification_title: 'Второе уведомление',
+        notification_body: 'Тело второго уведомления',
+        notification_data: '',
+        is_read: false,
+        created_at: new Date()
+      },
+      {
+        id: 3,
+        user_id: 23,
+        notification_type: 'task.test',
+        notification_title: 'Третье уведомление',
+        notification_body: 'Тело третье уведомления',
+        notification_data: '',
+        is_read: false,
+        created_at: new Date()
+      },
+      {
+        id: 4,
+        user_id: 23,
+        notification_type: 'task.test',
+        notification_title: 'Четвёртое уведомление',
+        notification_body: 'Тело четвёртого уведомления',
+        notification_data: '',
+        is_read: false,
+        created_at: new Date()
+      }
+    ];
+    setNotificationsData(tempNotifications);
   }, []);
 
   const getInAppNotifications = async () => {
@@ -35,11 +79,6 @@ export const InboxScreen = () => {
     router.back();
   };
 
-  const handleSave = () => {
-    // TODO: Просмотр уведомления
-    router.back();
-  };
-
   return (
     <View style={styles.container}>
       <View style={styles.header}>
@@ -47,21 +86,18 @@ export const InboxScreen = () => {
           <TouchableOpacity onPress={handleBack}>
             <EvilIcons name="close" size={40} color={TextColors.dim_gray} />
           </TouchableOpacity>
-          <Text style={styles.headerTitle}>Задача</Text>
-        </View>
-        <View style={styles.headerActions}>
-          <TouchableOpacity onPress={handleSave}>
-            <Ionicons name="checkmark" size={35} color={MainColors.pool_water} />
-          </TouchableOpacity>
+          <Text style={styles.headerTitle}>Уведомления</Text>
         </View>
       </View>
       <ScrollView style={styles.content}>
         {/* Список уведомлений */}
         {notificationsData && notificationsData.map((notification: notificationType) => (
-          <View key={notification.id}>
-            <Text>{notification.notification_title}</Text>
-            <Text>{notification.notification_body}</Text>
-          </View>
+          <TouchableOpacity key={notification.id} onPress={() => { setIsShowModalNotification(true); setSelectedNotification(notification) }}>
+            <View style={styles.notificationItem}>
+              <Text style={styles.notificationTitle}>{notification.notification_title}</Text>
+              <Text style={styles.notificationBody}>{notification.notification_body}</Text>
+            </View>
+          </TouchableOpacity>
         ))}
 
         {/* Модальные окна */}
@@ -69,8 +105,9 @@ export const InboxScreen = () => {
           isVisible={isShowModalNotification}
           onClose={() => { setIsShowModalNotification(false) }}
         >
-          <View>
-            <Text>Название уведомления</Text>
+          <View style={styles.modalContent}>
+            <Text style={styles.modalTitle}>{selectedNotification?.notification_title}</Text>
+            <Text style={styles.modalBody}>{selectedNotification?.notification_body}</Text>
           </View>
         </ModalItem>
       </ScrollView>
@@ -110,5 +147,35 @@ const styles = StyleSheet.create({
   content: {
     flex: 1,
     padding: 16,
+  },
+  notificationItem: {
+    padding: 10,
+    borderWidth: 1,
+    borderColor: TextColors.dim_gray,
+    borderRadius: 10,
+    marginBottom: 10,
+  },
+  notificationTitle: {
+    fontSize: 16,
+    fontFamily: 'Century-Regular',
+    color: TextColors.dire_wolf,
+  },
+  notificationBody: {
+    fontSize: 14,
+    fontFamily: 'Century-Regular',
+    color: TextColors.dim_gray,
+  },
+  modalContent: {
+    marginBottom: 10,
+  },
+  modalTitle: {
+    fontSize: 16,
+    fontFamily: 'Century-Regular',
+    color: TextColors.dire_wolf,
+  },
+  modalBody: {
+    fontSize: 14,
+    fontFamily: 'Century-Regular',
+    color: TextColors.dim_gray,
   },
 }); 
