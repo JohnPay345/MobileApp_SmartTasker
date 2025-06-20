@@ -11,7 +11,9 @@ export const TasksModel = {
       const options = {
         table: "tasks",
         columns: ["task_id", "task_name", "author_id", "project_id",
-          "start_date", "end_date", "status", "is_urgent", "priority"],
+          "start_date", "end_date", "status", "is_urgent", "priority",
+          "value", "effort", "estimated_duration", "priority_assessment",
+          "qualification_assessment", "load_assessment", "required_skills"],
         where: { "author_id": userId }
       }
       const sql = await selectDataInTable(options);
@@ -19,6 +21,7 @@ export const TasksModel = {
         return { type: "errorMsg", errorMsg: sql.message };
       }
       const result = await pool.query(sql.message, sql.values);
+      console.log(result.rows);
       if (!result.rows.length) {
         return { type: "errorMsg", errorMsg: "List task not found" };
       }

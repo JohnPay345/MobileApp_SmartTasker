@@ -32,7 +32,7 @@ export const UserController = {
       switch (result.type) {
         case "result":
           rep.header("Set-Cookie", `refresh_token=${result.result.refresh_token};Expires=${setDate(30).toUTCString()};HttpOnly;`);
-          return rep.code(200).send({ code: 200, url: req.url, result: result.result.access_token });
+          return rep.code(200).send({ code: 200, url: req.url, message: { user_id: result.result.user_id, access_token: result.result.tokens.access_token } });
         case "errorMsg":
           return rep.code(400).send({ code: 400, url: req.url, message: result.errorMsg });
         default: {

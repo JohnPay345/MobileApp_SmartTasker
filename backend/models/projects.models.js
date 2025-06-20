@@ -11,7 +11,7 @@ export const ProjectsModel = {
     try {
       const getProjectOptions = {
         table: "projects",
-        columns: ["project_id", "project_name", "project_description", "status", "author_id"],
+        columns: ["project_id", "project_name", "description", "status", "author_id"],
         where: { "author_id": userId }
       }
       const sql = await selectDataInTable(getProjectOptions);
@@ -28,7 +28,7 @@ export const ProjectsModel = {
         const getTasksProject = {
           table: [["tasks", "t"]],
           columns: [
-            "COUNT(CASE t.status = 'Выполнено' THEN 1) AS completed_tasks",
+            "COUNT(CASE WHEN t.status = 'Выполнена' THEN 1 END) AS completed_tasks",
             "COUNT(*) AS all_tasks"
           ],
           where: { "project_id": projectId }
@@ -36,7 +36,7 @@ export const ProjectsModel = {
         const getGoalsProject = {
           table: [["project_goals", "pg"]],
           columns: [
-            "COUNT(CASE pg.goal_status = 'Достигнута' THEN 1) AS completed_goals",
+            "COUNT(CASE WHEN pg.goal_status = 'Достигнута' THEN 1 END) AS completed_goals",
             "COUNT(*) AS all_goals"
           ],
           where: { "project_id": projectId }
@@ -46,18 +46,25 @@ export const ProjectsModel = {
         if (sqlGetTasks.type == "Error" || sqlGetGoals.type == "Error") {
           throw new Error(`Error when forming an sql query: ${sqlGetTasks.message}, ${sqlGetGoals.message}`);
         }
-        const resultGetTasks = await pool.query(sqlGetTasks.message, sqlGetTasks.message);
-        const resultGetGoals = await pool.query(sqlGetTasks.message, sqlGetTasks.message);
+        const resultGetTasks = await pool.query(sqlGetTasks.message, sqlGetTasks.values);
+        const resultGetGoals = await pool.query(sqlGetGoals.message, sqlGetGoals.values);
         if (!resultGetTasks.rows.length || !resultGetGoals.rows.length) {
           throw new Error(`Error when executing an sql query to the tasks and project_goals tables`);
         }
-        const { completed_tasks, all_tasks } = resultGetTasks.rows;
-        const { completed_goals, all_goals } = resultGetGoals.rows;
-        const progress = evaluate(process.env.FORMULA_CALCULATE_PROGRESSS, { completed_tasks, all_tasks, completed_goals, all_goals });
+        let [{ completed_tasks, all_tasks }] = resultGetTasks.rows;
+        let [{ completed_goals, all_goals }] = resultGetGoals.rows;
+        const skope = {
+          completed_tasks,
+          all_tasks,
+          completed_goals,
+          all_goals
+        }
+        const progress = evaluate(process.env.FORMULA_CALCULATE_PROGRESS, skope);
         resultsEvaluate.push({ project_id: projectId, project_progress: progress });
       }
       return { type: "result", result: { evaluations: resultsEvaluate, data: result.rows } }
     } catch (error) {
+      console.error(error)
       return { type: "errorMsg", errorMsg: "Error in Model getProjects" };
     }
   },

@@ -72,22 +72,24 @@ export const UserModel = {
       if (!isPassword) {
         return { type: "errorMsg", errorMsg: "Wrong email or password" };
       }
-      const { id } = isUser.rows[0];
+      const { user_id } = isUser.rows[0];
       const fullName = `${isUser.rows[0].firstName} ${isUser.rows[0].middleName}`;
-      const tokens = generateTokens({ userId: id, fullName });
-      return { type: "result", result: tokens }
+      const tokens = generateTokens({ userId: user_id, fullName });
+      return { type: "result", result: { user_id: user_id, tokens } }
     } catch (error) {
+      console.error(error);
       return { type: "errorMsg", errorMsg: "Error in Model Login" };
     }
   },
   getAllUsers: async () => {
     try {
-      const result = await pool.query(`SELECT user_id, firstName, middleName,
-        lastName, email, phone_number, birth_date,
+      const result = await pool.query(`SELECT user_id, first_name, middle_name,
+        last_name, email, phone_number, birth_date,
         start_date, gender, address, job_title,
         last_login, skills FROM users`);
       return { type: "result", result: result.rows };
     } catch (error) {
+      console.error(error)
       return { type: "errorMsg", errorMsg: "Error in Model GetAllUsers" }
     }
   },

@@ -24,12 +24,11 @@ INSERT INTO users (first_name, middle_name, last_name, email, phone_number, pass
 'г. Красноярск, пр. Мира, д. 10', 'PR-менеджер', '/uploads/avatars/svetlana_avatar.jpg', ARRAY['СМИ', 'Пресс-релизы', 'Коммуникации'], NULL, NOW(), DEFAULT);
 
 -- Вставляем данные в user_devices
-INSERT INTO user_devices (user_id, device_type, device_token, push_token)
+INSERT INTO user_devices (user_id, device_type, device_token)
 SELECT
   user_id,
   'android',  -- Случайный выбор типа устройства
   md5(random()::text), -- device_token (фиктивный токен)
-  md5(random()::text)  -- push_token (фиктивный токен)
 FROM users;
 
 -- Вставляем данные в user_notifications_settings
